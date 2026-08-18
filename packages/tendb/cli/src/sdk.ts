@@ -150,7 +150,7 @@ export class TenDBClient {
       // fresh = snapshot the streaming sync target first, so the branch is
       // "main as of now" instead of "as of the last snapshot".
       if (opts.fresh) {
-        await createSnapshotNow(session.client, snapshotSsm(session.config, session.ssm), session.config.ssmPrefix);
+        await createSnapshotNow(session.client, snapshotSsm(session.config, session.params), session.config.ssmPrefix);
       }
       const { clone, uri } = await ensureBranch(session, name, { from: opts.from });
       return handleFrom(name, clone, uri);
@@ -182,7 +182,7 @@ export class TenDBClient {
       const session = await this.session();
       return createSnapshotNow(
         session.client,
-        snapshotSsm(session.config, session.ssm),
+        snapshotSsm(session.config, session.params),
         session.config.ssmPrefix,
         opts,
       );
@@ -190,12 +190,12 @@ export class TenDBClient {
 
     getConfig: async (): Promise<SnapshotScheduleConfig | null> => {
       const session = await this.session();
-      return getScheduleConfig(snapshotSsm(session.config, session.ssm), session.config.ssmPrefix);
+      return getScheduleConfig(snapshotSsm(session.config, session.params), session.config.ssmPrefix);
     },
 
     setConfig: async (config: SnapshotScheduleConfig): Promise<void> => {
       const session = await this.session();
-      await setScheduleConfig(snapshotSsm(session.config, session.ssm), session.config.ssmPrefix, config);
+      await setScheduleConfig(snapshotSsm(session.config, session.params), session.config.ssmPrefix, config);
     },
   };
 
@@ -209,7 +209,7 @@ export class TenDBClient {
     sync: async (opts: { timeoutMs?: number } = {}): Promise<SchemaDiff> => {
       const session = await this.session();
       return forceSchemaSync(
-        snapshotSsm(session.config, session.ssm),
+        snapshotSsm(session.config, session.params),
         session.config.ssmPrefix,
         await this.replicationEndpoints(),
         opts,
@@ -218,13 +218,13 @@ export class TenDBClient {
 
     getConfig: async (): Promise<SchemaSyncConfig | null> => {
       const session = await this.session();
-      return getSchemaConfig(snapshotSsm(session.config, session.ssm), session.config.ssmPrefix);
+      return getSchemaConfig(snapshotSsm(session.config, session.params), session.config.ssmPrefix);
     },
 
     /** autoSync: the daemon heals additive drift on its own (~1 min cadence). */
     setConfig: async (config: SchemaSyncConfig): Promise<void> => {
       const session = await this.session();
-      await setSchemaConfig(snapshotSsm(session.config, session.ssm), session.config.ssmPrefix, config);
+      await setSchemaConfig(snapshotSsm(session.config, session.params), session.config.ssmPrefix, config);
     },
   };
 
@@ -277,7 +277,7 @@ export class TenDBClient {
   async migrate(opts: MigrateOptions): Promise<MigrateResult> {
     const session = await this.session();
     if (opts.fresh) {
-      await createSnapshotNow(session.client, snapshotSsm(session.config, session.ssm), session.config.ssmPrefix);
+      await createSnapshotNow(session.client, snapshotSsm(session.config, session.params), session.config.ssmPrefix);
     }
     return migrate(session, opts);
   }

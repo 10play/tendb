@@ -6,6 +6,9 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "docs:dev": "pnpm --filter tendb-docs dev",
+    "docs:build": "pnpm --filter tendb-docs build",
+    "docs:preview": "pnpm --filter tendb-docs preview"
   }
 }

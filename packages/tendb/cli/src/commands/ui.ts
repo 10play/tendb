@@ -19,8 +19,8 @@ export function registerUi(program: Command): void {
     .option("--no-open", "do not open a browser")
     .action(async (opts: { open: boolean }, cmd: Command) => {
       await withSession(cmd, async (session) => {
-        if (session.transport === "direct") {
-          throw new UsageError("`ui` needs the SSM transport (the embedded UI is bound to the host's loopback)");
+        if (!session.canTunnel) {
+          throw new UsageError("`ui` needs a platform session (the embedded UI is bound to the host's loopback)");
         }
         // The embedded UI calls localhost:2345 from the browser, so both local
         // ports must match the remote ones exactly.

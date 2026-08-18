@@ -7,6 +7,16 @@ lives in [`packages/tendb/`](packages/tendb/README.md):
 - `packages/tendb/terraform/` — engine, network and hosted-console modules,
   plus the `examples/standalone` deployment used for the live environment.
 - `packages/tendb/cli/` — the `@10play/tendb` CLI and the bundled web console.
+- `apps/docs/` — the documentation site (Astro Starlight): quickstart,
+  architecture, CLI & Terraform reference, CI previews, Neon parity.
+
+## Documentation
+
+```bash
+pnpm install
+pnpm docs:dev      # http://localhost:4321
+pnpm docs:build    # static site in apps/docs/dist/
+```
 
 The repo-root `tendb.json` points the CLI at the live engine
 (`/tendb` SSM prefix, eu-north-1), so from anywhere in the repo:

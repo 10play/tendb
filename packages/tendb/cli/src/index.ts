@@ -49,6 +49,7 @@ function applyGlobalOptions(cmd: Command): void {
   }
   cmd
     .option("--env <name>", "environment block from tendb.json")
+    .option("--platform <name>", "aws|gcp|azure|local (default aws)")
     .option("--region <region>", "AWS region")
     .option("--profile <profile>", "AWS profile")
     .option("--ssm-prefix <prefix>", "SSM parameter prefix (default /tendb)")

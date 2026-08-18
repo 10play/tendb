@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { SsmFacade } from "./aws/params.js";
+import type { ParamStore } from "./platform/types.js";
 import { TimeoutError, UsageError } from "./errors.js";
 import {
   diffSchemas,
@@ -30,10 +30,10 @@ export function validateSchemaConfig(value: unknown): SchemaSyncConfig {
 }
 
 export async function getSchemaConfig(
-  ssm: SsmFacade,
+  params: ParamStore,
   ssmPrefix: string,
 ): Promise<SchemaSyncConfig | null> {
-  const raw = await ssm.getParameter(`${ssmPrefix}/schema/config`);
+  const raw = await params.getParameter(`${ssmPrefix}/schema/config`);
   if (!raw) return null;
   try {
     return validateSchemaConfig(JSON.parse(raw));
@@ -43,11 +43,11 @@ export async function getSchemaConfig(
 }
 
 export async function setSchemaConfig(
-  ssm: SsmFacade,
+  params: ParamStore,
   ssmPrefix: string,
   config: SchemaSyncConfig,
 ): Promise<void> {
-  await ssm.putParameter(`${ssmPrefix}/schema/config`, JSON.stringify(validateSchemaConfig(config)));
+  await params.putParameter(`${ssmPrefix}/schema/config`, JSON.stringify(validateSchemaConfig(config)));
 }
 
 /** Current drift between publisher and subscriber (empty lists = in sync). */
@@ -70,9 +70,9 @@ export async function schemaDrift(urls: {
 }
 
 /** Fire a full-sync request without waiting (async callers poll schemaDrift). */
-export async function requestSchemaSync(ssm: SsmFacade, ssmPrefix: string): Promise<string> {
+export async function requestSchemaSync(params: ParamStore, ssmPrefix: string): Promise<string> {
   const nonce = `sync-${Date.now()}-${randomBytes(4).toString("hex")}`;
-  await ssm.putParameter(`${ssmPrefix}/schema/sync-request`, nonce);
+  await params.putParameter(`${ssmPrefix}/schema/sync-request`, nonce);
   return nonce;
 }
 
@@ -82,14 +82,14 @@ export async function requestSchemaSync(ssm: SsmFacade, ssmPrefix: string): Prom
  * the drift reads clean.
  */
 export async function forceSchemaSync(
-  ssm: SsmFacade,
+  params: ParamStore,
   ssmPrefix: string,
   urls: { publisher: string | null; subscriber: string | null },
   opts: { timeoutMs?: number; pollMs?: number } = {},
 ): Promise<SchemaDiff> {
   const timeoutMs = opts.timeoutMs ?? 120_000;
   const pollMs = opts.pollMs ?? 3_000;
-  await requestSchemaSync(ssm, ssmPrefix);
+  await requestSchemaSync(params, ssmPrefix);
 
   const deadline = Date.now() + timeoutMs;
   for (;;) {

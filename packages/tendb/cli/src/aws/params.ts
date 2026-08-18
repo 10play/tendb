@@ -7,8 +7,8 @@ import {
   TerminateSessionCommand,
 } from "@aws-sdk/client-ssm";
 import { fromIni } from "@aws-sdk/credential-providers";
-import { PlatformDownError } from "../errors.js";
 import type { ResolvedConfig } from "../config.js";
+import type { ParamStore } from "../platform/types.js";
 
 export interface StartedSession {
   sessionId: string;
@@ -18,13 +18,12 @@ export interface StartedSession {
 
 /**
  * Thin facade over the SSM API — the only AWS surface the CLI touches.
- * Injected into transport code so tests can fake it.
+ * Injected into transport code so tests can fake it. Its param half doubles
+ * as the AWS ParamStore for the platform layer.
  */
-export interface SsmFacade {
+export interface SsmFacade extends ParamStore {
   region(): Promise<string>;
   profile?: string;
-  getParameter(name: string, decrypt?: boolean): Promise<string | null>;
-  putParameter(name: string, value: string, secure?: boolean): Promise<void>;
   startSession(input: {
     target: string;
     documentName: string;
@@ -78,33 +77,7 @@ export function createSsmFacade(cfg: Pick<ResolvedConfig, "region" | "profile">)
   };
 }
 
-export interface Discovered {
-  instanceId: string;
-  token: string;
-  database?: string;
-  host?: string;
-}
-
-/**
- * Discovery contract with the terraform module: parameters under
- * `${ssmPrefix}/`. A missing instance-id parameter means the platform stack is
- * down — the standard "nothing exists" signal.
- */
-export async function discover(ssm: SsmFacade, cfg: ResolvedConfig): Promise<Discovered> {
-  const p = (leaf: string) => `${cfg.ssmPrefix}/${leaf}`;
-
-  const instanceId = cfg.instanceId ?? (await ssm.getParameter(p("instance-id")));
-  if (!instanceId) {
-    throw new PlatformDownError(
-      `DBLab host not found (${p("instance-id")} missing — platform down?)`,
-      "bring the platform up first (e.g. `make up` or `terraform apply`)",
-    );
-  }
-  const token = cfg.token ?? (await ssm.getParameter(p("verification-token"), true));
-  if (!token) {
-    throw new PlatformDownError(`verification token not found at ${p("verification-token")}`);
-  }
-  const database = cfg.database ?? (await ssm.getParameter(p("dbname"))) ?? undefined;
-  const host = (await ssm.getParameter(p("host"))) ?? undefined;
-  return { instanceId, token, database, host };
-}
+// Discovery moved to the platform layer (it only needs a ParamStore);
+// re-exported here for back-compat with existing imports.
+export { discover } from "../platform/discover.js";
+export type { Discovered } from "../platform/types.js";

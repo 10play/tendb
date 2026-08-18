@@ -29,7 +29,7 @@ export function registerBranches(program: Command): void {
       const name = normalizeBranchName(rawName);
       await withSession(cmd, async (session) => {
         if (opts.fresh) {
-          await createSnapshotNow(session.client, snapshotSsm(session.config, session.ssm), session.config.ssmPrefix);
+          await createSnapshotNow(session.client, snapshotSsm(session.config, session.params), session.config.ssmPrefix);
         }
         const { clone, uri } = await ensureBranch(session, name, { from: opts.from });
         if (globalOpts(cmd).output === "json") {

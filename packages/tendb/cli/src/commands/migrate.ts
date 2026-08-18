@@ -45,7 +45,7 @@ export function registerMigrate(program: Command): void {
 
         const result = await withSession(cmd, async (session) => {
           if (opts.fresh) {
-            await createSnapshotNow(session.client, snapshotSsm(session.config, session.ssm), session.config.ssmPrefix);
+            await createSnapshotNow(session.client, snapshotSsm(session.config, session.params), session.config.ssmPrefix);
           }
           return migrate(session, { command, branch, from: opts.from, keep: opts.keep });
         });

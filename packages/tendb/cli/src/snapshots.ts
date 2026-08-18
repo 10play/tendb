@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 import type { DblabClient } from "./dblab/client.js";
 import type { Snapshot } from "./dblab/types.js";
-import type { SsmFacade } from "./aws/params.js";
-import { createSsmFacade } from "./aws/params.js";
+import type { ParamStore } from "./platform/types.js";
+import { createParamStore } from "./platform/index.js";
 import { TenDBError, TimeoutError, UsageError } from "./errors.js";
 import type { ResolvedConfig } from "./config.js";
 import { progress } from "./output.js";
@@ -28,17 +28,18 @@ export function poolSnapshots(snapshots: Snapshot[]): Snapshot[] {
   return snapshots.filter((s) => /@snapshot_/.test(s.id));
 }
 
-/** An SSM facade for config/request access, working on any transport. */
-export function snapshotSsm(cfg: ResolvedConfig, sessionSsm?: SsmFacade): SsmFacade {
-  if (sessionSsm) return sessionSsm;
-  if (!cfg.region) {
-    throw new UsageError(
-      "snapshot control needs AWS access",
-      "set region (TENDB_REGION or tendb.json) so the SSM parameters are reachable",
-    );
-  }
-  return createSsmFacade(cfg);
+/**
+ * A ParamStore for config/request access, working on any transport: the
+ * session's own store when present, else a standalone one built from config
+ * (how the hosted console reaches the store on direct transport).
+ */
+export function controlParams(cfg: ResolvedConfig, sessionParams?: ParamStore): ParamStore {
+  if (sessionParams) return sessionParams;
+  return createParamStore(cfg);
 }
+
+/** @deprecated renamed to controlParams (works on every platform, not just SSM). */
+export const snapshotSsm = controlParams;
 
 export function validateScheduleConfig(value: unknown): SnapshotScheduleConfig {
   const cfg = value as Partial<SnapshotScheduleConfig> | null;
@@ -54,10 +55,10 @@ export function validateScheduleConfig(value: unknown): SnapshotScheduleConfig {
 }
 
 export async function getScheduleConfig(
-  ssm: SsmFacade,
+  params: ParamStore,
   ssmPrefix: string,
 ): Promise<SnapshotScheduleConfig | null> {
-  const raw = await ssm.getParameter(`${ssmPrefix}/snapshots/config`);
+  const raw = await params.getParameter(`${ssmPrefix}/snapshots/config`);
   if (!raw) return null;
   try {
     return validateScheduleConfig(JSON.parse(raw));
@@ -67,17 +68,17 @@ export async function getScheduleConfig(
 }
 
 export async function setScheduleConfig(
-  ssm: SsmFacade,
+  params: ParamStore,
   ssmPrefix: string,
   config: SnapshotScheduleConfig,
 ): Promise<void> {
-  await ssm.putParameter(`${ssmPrefix}/snapshots/config`, JSON.stringify(validateScheduleConfig(config)));
+  await params.putParameter(`${ssmPrefix}/snapshots/config`, JSON.stringify(validateScheduleConfig(config)));
 }
 
 /** Fire a snapshot request without waiting (async callers poll the listing). */
-export async function requestSnapshot(ssm: SsmFacade, ssmPrefix: string): Promise<string> {
+export async function requestSnapshot(params: ParamStore, ssmPrefix: string): Promise<string> {
   const nonce = `req-${Date.now()}-${randomBytes(4).toString("hex")}`;
-  await ssm.putParameter(`${ssmPrefix}/snapshots/request`, nonce);
+  await params.putParameter(`${ssmPrefix}/snapshots/request`, nonce);
   return nonce;
 }
 
@@ -88,7 +89,7 @@ export async function requestSnapshot(ssm: SsmFacade, ssmPrefix: string): Promis
  */
 export async function createSnapshotNow(
   client: DblabClient,
-  ssm: SsmFacade,
+  params: ParamStore,
   ssmPrefix: string,
   opts: { timeoutMs?: number; pollMs?: number } = {},
 ): Promise<Snapshot> {
@@ -96,7 +97,7 @@ export async function createSnapshotNow(
   const pollMs = opts.pollMs ?? 2_000;
 
   const before = new Set(poolSnapshots(await client.listSnapshots()).map((s) => s.id));
-  await requestSnapshot(ssm, ssmPrefix);
+  await requestSnapshot(params, ssmPrefix);
   progress("snapshot requested — waiting for the engine host…");
 
   const deadline = Date.now() + timeoutMs;
@@ -118,9 +119,9 @@ export async function createSnapshotNow(
 }
 
 /** Guard for flows that need a snapshot capability before proceeding. */
-export function assertSnapshotSupport(cfg: ResolvedConfig, sessionSsm?: SsmFacade): SsmFacade {
+export function assertSnapshotSupport(cfg: ResolvedConfig, sessionParams?: ParamStore): ParamStore {
   try {
-    return snapshotSsm(cfg, sessionSsm);
+    return controlParams(cfg, sessionParams);
   } catch (err) {
     throw err instanceof TenDBError
       ? err

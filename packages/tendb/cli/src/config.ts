@@ -3,8 +3,14 @@ import { dirname, join, parse, resolve } from "node:path";
 import { z } from "zod";
 import { UsageError } from "./errors.js";
 
+export const PLATFORMS = ["aws", "gcp", "azure", "local"] as const;
+export type PlatformName = (typeof PLATFORMS)[number];
+
 const environmentSchema = z
   .object({
+    platform: z.enum(PLATFORMS).optional(),
+    /** Canonical engine-contract namespace; `ssmPrefix` is the legacy alias. */
+    paramPrefix: z.string().startsWith("/").optional(),
     ssmPrefix: z.string().startsWith("/").optional(),
     region: z.string().optional(),
     profile: z.string().optional(),
@@ -16,6 +22,12 @@ const environmentSchema = z
     cloneTimeoutSeconds: z.number().int().positive().optional(),
     replicationPublisherUrl: z.string().optional(),
     replicationSubscriberUrl: z.string().optional(),
+    /** gcp: Secret Manager project (defaults to the gcloud CLI's project). */
+    gcpProject: z.string().optional(),
+    /** azure: Key Vault name holding the engine contract params. */
+    azureVault: z.string().optional(),
+    /** local: state dir with params.json (default ~/.tendb/local). */
+    stateDir: z.string().optional(),
   })
   .strict();
 
@@ -29,6 +41,8 @@ export type ConfigOverrides = z.infer<typeof environmentSchema> & { env?: string
 
 export interface ResolvedConfig {
   envName?: string;
+  platform: PlatformName;
+  /** The engine-contract namespace (canonical name; `paramPrefix` in config files). */
   ssmPrefix: string;
   region?: string;
   profile?: string;
@@ -41,9 +55,13 @@ export interface ResolvedConfig {
   /** Upstream replication endpoints for the console's sync view (optional). */
   replicationPublisherUrl?: string;
   replicationSubscriberUrl?: string;
+  gcpProject?: string;
+  azureVault?: string;
+  stateDir?: string;
 }
 
 const DEFAULTS = {
+  platform: "aws" as PlatformName,
   ssmPrefix: "/tendb",
   snapshotTimeoutSeconds: 900,
   cloneTimeoutSeconds: 120,
@@ -81,10 +99,18 @@ function loadConfigFile(path: string): z.infer<typeof configFileSchema> {
   return parsed.data;
 }
 
+function parsePlatform(v: string | undefined): PlatformName | undefined {
+  if (v === undefined) return undefined;
+  if ((PLATFORMS as readonly string[]).includes(v)) return v as PlatformName;
+  throw new UsageError(`invalid platform "${v}"`, `expected one of: ${PLATFORMS.join(", ")}`);
+}
+
 function envVarOverrides(env: NodeJS.ProcessEnv): ConfigOverrides {
   const num = (v: string | undefined) => (v ? Number(v) : undefined);
   return dropUndefined({
     env: env.TENDB_ENV,
+    platform: parsePlatform(env.TENDB_PLATFORM),
+    paramPrefix: env.TENDB_PARAM_PREFIX,
     ssmPrefix: env.TENDB_SSM_PREFIX,
     region: env.TENDB_REGION ?? env.AWS_REGION,
     profile: env.TENDB_PROFILE,
@@ -96,6 +122,9 @@ function envVarOverrides(env: NodeJS.ProcessEnv): ConfigOverrides {
     cloneTimeoutSeconds: num(env.TENDB_CLONE_TIMEOUT),
     replicationPublisherUrl: env.TENDB_REPLICATION_PUBLISHER_URL,
     replicationSubscriberUrl: env.TENDB_REPLICATION_SUBSCRIBER_URL,
+    gcpProject: env.TENDB_GCP_PROJECT,
+    azureVault: env.TENDB_AZURE_VAULT,
+    stateDir: env.TENDB_STATE_DIR,
   });
 }
 
@@ -135,11 +164,21 @@ export function resolveConfig(opts: {
 
   const merged = {
     ...DEFAULTS,
-    ...dropUndefined(fileTop),
-    ...dropUndefined(envBlock),
-    ...fromEnv,
-    ...flags,
+    ...canonicalPrefix(dropUndefined(fileTop)),
+    ...canonicalPrefix(dropUndefined(envBlock)),
+    ...canonicalPrefix(fromEnv),
+    ...canonicalPrefix(flags),
   };
-  const { env: _env, ...rest } = merged;
+  const { env: _env, paramPrefix: _paramPrefix, ...rest } = merged;
   return { envName, ...rest };
+}
+
+/**
+ * `paramPrefix` is the platform-neutral spelling of `ssmPrefix`. They are
+ * folded per precedence layer (paramPrefix wins within a layer) so that a
+ * higher-precedence source setting either name overrides both.
+ */
+function canonicalPrefix<T extends { ssmPrefix?: string; paramPrefix?: string }>(layer: T): T {
+  if (!layer.paramPrefix) return layer;
+  return { ...layer, ssmPrefix: layer.paramPrefix };
 }

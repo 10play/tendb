@@ -2,14 +2,10 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { MissingDependencyError } from "../errors.js";
 import { getFreePort, waitForTcp } from "../util/ports.js";
 import type { SsmFacade } from "./params.js";
+import type { Tunnel } from "../platform/types.js";
 
-export interface Tunnel {
-  localPort: number;
-  remotePort: number;
-  close(): Promise<void>;
-  /** Resolves if the tunnel dies on its own (plugin exit) — for respawn logic. */
-  onExit: Promise<void>;
-}
+// Tunnel now lives in the platform layer; re-exported for back-compat.
+export type { Tunnel } from "../platform/types.js";
 
 const PLUGIN_HINT =
   "install the AWS Session Manager plugin:\n" +

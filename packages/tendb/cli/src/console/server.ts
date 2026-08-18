@@ -34,7 +34,7 @@ import {
   snapshotSsm,
   validateScheduleConfig,
 } from "../snapshots.js";
-import type { SsmFacade } from "../aws/params.js";
+import type { ParamStore } from "../platform/types.js";
 import { localizeUri } from "../commands/shared.js";
 import { TenDBError } from "../errors.js";
 
@@ -75,7 +75,7 @@ export class ConsoleServer {
   /** Cached upstream-replication endpoints; null = looked up and absent. */
   private replicationUrls: ReplicationUrls | undefined;
   /** Lazy SSM facade for snapshot config/requests (works on direct transport). */
-  private ssmFacade: SsmFacade | undefined;
+  private paramStore: ParamStore | undefined;
   /** Alert loop state: last-seen severities, ring-buffered events, cadence. */
   private alertSeen = new Map<FindingCode, FindingSeverity>();
   private alertHistory: AlertEvent[] = [];
@@ -316,11 +316,11 @@ export class ConsoleServer {
   }
 
   /** SSM access on any transport (hosted console runs direct + region env). */
-  private snapshotFacade(): SsmFacade {
-    if (!this.ssmFacade) {
-      this.ssmFacade = snapshotSsm(this.session.config, this.session.ssm);
+  private snapshotFacade(): ParamStore {
+    if (!this.paramStore) {
+      this.paramStore = snapshotSsm(this.session.config, this.session.params);
     }
-    return this.ssmFacade;
+    return this.paramStore;
   }
 
   private async getSnapshotConfig(res: ServerResponse): Promise<void> {
@@ -673,7 +673,7 @@ export class ConsoleServer {
     const { clone, uri } = await getBranchClone(this.session, branch);
     let connString = uri;
     let tunnel: Tunnel | null = null;
-    if (this.session.transport === "ssm") {
+    if (this.session.canTunnel) {
       tunnel = await this.session.openClonePort(Number(clone.db?.port));
       connString = localizeUri(uri, tunnel.localPort);
       // If the plugin dies (session limits), drop the cache entry so the next

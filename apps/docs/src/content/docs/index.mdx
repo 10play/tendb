@@ -1,0 +1,63 @@
+---
+title: tendb
+description: Neon-style Postgres branching on your own AWS account.
+template: splash
+hero:
+  tagline: Copy-on-write branches of your real Postgres, on infrastructure you own — ready in seconds.
+  actions:
+    - text: Get started
+      link: /getting-started/quickstart/
+      icon: right-arrow
+    - text: How it works
+      link: /concepts/architecture/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+```bash
+tendb branches create my-feature   # copy-on-write branch DB, ready in ~5s
+tendb psql my-feature              # auto SSM tunnel + psql
+tendb console                      # Neon-style dashboard on localhost
+tendb ci ensure 42 | tail -1       # CI: connection URI as the last stdout line
+```
+
+<CardGrid stagger>
+  <Card title="Branches in seconds" icon="rocket">
+    Every branch is a ZFS copy-on-write clone of your synced data — a real,
+    writable Postgres that costs only the pages you change. Create it, break
+    it, delete it.
+  </Card>
+  <Card title="Your own AWS account" icon="setting">
+    Bundled Terraform provisions one EC2 host in your VPC. No SaaS, no control
+    plane, no third party — your data never leaves your account.
+  </Card>
+  <Card title="CI preview databases" icon="code-branch">
+    `tendb ci ensure "$PR" | tail -1` prints a ready connection URI as the last
+    line of stdout. Idempotent on re-runs; cleanup on PR close succeeds even
+    when the platform is torn down.
+  </Card>
+  <Card title="Neon-style CLI and console" icon="laptop">
+    `neonctl`-style commands plus a local web console: branch tree, SQL
+    editor, schema browser, snapshots, per-branch monitoring, and Slack
+    alerts.
+  </Card>
+  <Card title="Locked down by default" icon="approve-check-circle">
+    No SSH, no inbound internet. Everything rides AWS SSM Session Manager
+    port-forwards, and clone passwords are derived on demand — stored
+    nowhere.
+  </Card>
+  <Card title="Any Postgres source" icon="cloud-download">
+    Sync from Neon, Aurora, RDS — anything with a `postgres://` URL. The
+    source connection string lives in Secrets Manager and is read by the host
+    at boot.
+  </Card>
+</CardGrid>
+
+## Built on DBLab Engine
+
+tendb stands on [DBLab Engine](https://github.com/postgres-ai/database-lab-engine)
+by [Postgres.ai](https://postgres.ai) — the open-source engine that does the
+heavy lifting of ZFS thin cloning and copy-on-write branch databases. tendb
+adds the AWS packaging around it: Terraform provisioning, SSM transport, the
+CLI, the web console, and the CI contract.

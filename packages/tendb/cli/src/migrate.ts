@@ -25,7 +25,7 @@ export interface BranchUrl {
 
 export async function openBranchUrl(session: ApiSession, branch: string): Promise<BranchUrl> {
   const { clone, uri } = await getBranchClone(session, branch);
-  if (session.transport !== "ssm") {
+  if (!session.canTunnel) {
     return { url: uri, remote: uri, close: async () => {} };
   }
   const tunnel = await session.openClonePort(Number(clone.db?.port));

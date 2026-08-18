@@ -37,7 +37,7 @@ export function registerSnapshots(program: Command): void {
     .action(async (_opts: unknown, cmd: Command) => {
       const started = Date.now();
       const snapshot = await withSession(cmd, async (session) =>
-        createSnapshotNow(session.client, snapshotSsm(session.config, session.ssm), session.config.ssmPrefix),
+        createSnapshotNow(session.client, snapshotSsm(session.config, session.params), session.config.ssmPrefix),
       );
       if (globalOpts(cmd).output === "json") {
         printJson({ ...snapshot, durationMs: Date.now() - started });
@@ -54,7 +54,7 @@ export function registerSnapshots(program: Command): void {
     .option("--retain <n>", "pool snapshots to keep (in-use ones are never pruned)")
     .action(async (opts: { intervalMinutes?: string; retain?: string }, cmd: Command) => {
       const result = await withSession(cmd, async (session) => {
-        const ssm = snapshotSsm(session.config, session.ssm);
+        const ssm = snapshotSsm(session.config, session.params);
         const prefix = session.config.ssmPrefix;
         const current = (await getScheduleConfig(ssm, prefix)) ?? { intervalMinutes: 0, retain: 24 };
         if (opts.intervalMinutes === undefined && opts.retain === undefined) return current;

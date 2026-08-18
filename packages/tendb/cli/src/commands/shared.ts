@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { resolveConfig, type ResolvedConfig } from "../config.js";
+import { PLATFORMS, resolveConfig, type PlatformName, type ResolvedConfig } from "../config.js";
 import { openSession, type ApiSession } from "../context.js";
 import type { OutputFormat } from "../output.js";
 import { setQuiet } from "../output.js";
@@ -7,6 +7,7 @@ import { UsageError } from "../errors.js";
 
 export interface GlobalOpts {
   env?: string;
+  platform?: string;
   region?: string;
   profile?: string;
   ssmPrefix?: string;
@@ -28,9 +29,13 @@ export function globalOpts(cmd: Command): GlobalOpts {
 export function configFromCommand(cmd: Command): ResolvedConfig {
   const opts = globalOpts(cmd);
   setQuiet(Boolean(opts.quiet));
+  if (opts.platform !== undefined && !(PLATFORMS as readonly string[]).includes(opts.platform)) {
+    throw new UsageError(`invalid --platform "${opts.platform}"`, `expected one of: ${PLATFORMS.join(", ")}`);
+  }
   return resolveConfig({
     flags: {
       env: opts.env,
+      platform: opts.platform as PlatformName | undefined,
       region: opts.region,
       profile: opts.profile,
       ssmPrefix: opts.ssmPrefix,

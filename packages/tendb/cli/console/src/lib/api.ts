@@ -2,7 +2,7 @@
 
 export interface AppContext {
   env: string | null;
-  transport: "ssm" | "direct";
+  transport: "ssm" | "iap" | "bastion" | "local" | "direct";
   instanceId: string | null;
   ssmPrefix: string;
   database: string | null;

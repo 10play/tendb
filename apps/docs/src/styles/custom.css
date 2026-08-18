@@ -1,0 +1,46 @@
+/* tendb docs theme — emerald accent over a cool neutral base. */
+
+:root {
+  /* Accent (emerald) */
+  --sl-color-accent-low: #063d2e;
+  --sl-color-accent: #059669;
+  --sl-color-accent-high: #a7f3d0;
+
+  /* Slightly cool grays for the dark theme */
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #e7eef1;
+  --sl-color-gray-2: #bac4c8;
+  --sl-color-gray-3: #7f8f96;
+  --sl-color-gray-4: #4c5960;
+  --sl-color-gray-5: #2c3940;
+  --sl-color-gray-6: #1b262c;
+  --sl-color-black: #121a1f;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #c7f0dd;
+  --sl-color-accent: #047857;
+  --sl-color-accent-high: #064e3b;
+
+  --sl-color-white: #17242b;
+  --sl-color-gray-1: #24333b;
+  --sl-color-gray-2: #35444c;
+  --sl-color-gray-3: #58676e;
+  --sl-color-gray-4: #8b9aa1;
+  --sl-color-gray-5: #c6d0d5;
+  --sl-color-gray-6: #eef2f4;
+  --sl-color-gray-7: #f7f9fa;
+  --sl-color-black: #ffffff;
+}
+
+/* Landing hero: gradient title, roomier tagline */
+[data-has-hero] .hero h1 {
+  background: linear-gradient(90deg, var(--sl-color-white), var(--sl-color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-has-hero] .hero .tagline {
+  max-width: 42rem;
+}

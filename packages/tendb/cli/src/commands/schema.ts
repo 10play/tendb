@@ -48,7 +48,7 @@ export function registerSchema(program: Command): void {
       const started = Date.now();
       await withSession(cmd, async (session) =>
         forceSchemaSync(
-          snapshotSsm(session.config, session.ssm),
+          snapshotSsm(session.config, session.params),
           session.config.ssmPrefix,
           await resolveReplicationUrls(session),
         ),
@@ -62,7 +62,7 @@ export function registerSchema(program: Command): void {
     .option("--auto-sync <on|off>", "enable/disable additive auto-heal")
     .action(async (opts: { autoSync?: string }, cmd: Command) => {
       const result = await withSession(cmd, async (session) => {
-        const ssm = snapshotSsm(session.config, session.ssm);
+        const ssm = snapshotSsm(session.config, session.params);
         const prefix = session.config.ssmPrefix;
         if (opts.autoSync !== undefined) {
           const next = { autoSync: opts.autoSync === "on" };
