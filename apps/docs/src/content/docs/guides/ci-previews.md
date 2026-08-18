@@ -312,7 +312,7 @@ A runner that already has network access to the engine host can skip AWS entirel
 
 **Masked values don't cross job boundaries.** GitHub drops job outputs that contain masked content. Keep `ensure` and its consumers in the same job, or have the other job run `tendb ci url <pr> | tail -1` to re-derive the URI itself (and mask it again there).
 
-**Capacity is a fixed port pool.** Each engine host serves a fixed number of concurrent branches (the Terraform `clone_port_range`). When it's full, `ensure` exits **42**. Branches have no TTL — a PR closed while your cleanup workflow was broken leaks a branch forever. Check with `tendb branches list`, delete idle ones, or grow the pool. A scheduled job that reconciles open PRs against `tendb branches list -o json` is cheap insurance. See [operations](/guides/operations/).
+**Capacity is a fixed port pool.** Each engine host serves a fixed number of concurrent branches (the Terraform `clone_port_range`). When it's full, `ensure` exits **42**. The engine does reap clones idle longer than `clone_max_idle_minutes` (default 24 h), but a branch something keeps connecting to never idles — a PR closed while your cleanup workflow was broken can hold a port indefinitely. Check with `tendb branches list`, delete idle ones, or grow the pool. A scheduled job that reconciles open PRs against `tendb branches list -o json` is cheap insurance. See [operations](/guides/operations/).
 
 **Global flags go after the subcommand.** `tendb --region eu-north-1 ci ensure 42` is an error; `tendb ci ensure 42 --region eu-north-1` works.
 

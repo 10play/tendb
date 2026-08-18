@@ -1,0 +1,46 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default />
+<div class="built-by sl-flex">
+  <a href="https://10play.dev" rel="noopener">
+    Built by
+    <svg viewBox="0 10 232 208" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g fill="#ff0a54">
+        <path
+          d="m140.14 123.75-24.96 41.56c-12.44 20.71 2.48 47.08 26.64 47.08h49.93c24.16 0 39.08-26.37 26.64-47.08l-24.96-41.56c-12.07-20.1-41.21-20.1-53.28 0z"
+        ></path>
+        <path
+          d="m18.17 206.07c-17.37-9.64-23.32-30.97-13.3-47.66l72.6-120.87c10.04-16.71 32.28-22.43 49.67-12.78 17.37 9.64 23.32 30.97 13.3 47.66l-72.6 120.86c-10.04 16.71-32.28 22.43-49.67 12.78z"
+        ></path>
+      </g>
+    </svg>
+    <span>10play</span>
+  </a>
+</div>
+
+<style>
+  .built-by {
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  .built-by a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: var(--sl-text-xs);
+    text-decoration: none;
+    color: var(--sl-color-gray-3);
+  }
+  .built-by a:hover {
+    color: var(--sl-color-white);
+  }
+  .built-by svg {
+    height: 0.9em;
+    width: auto;
+  }
+  .built-by span {
+    font-weight: 600;
+  }
+</style>

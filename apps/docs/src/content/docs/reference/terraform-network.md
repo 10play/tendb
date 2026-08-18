@@ -5,15 +5,15 @@ description: Reference for the tendb network and console Terraform modules and t
 
 Alongside the [engine module](/reference/terraform-engine/), the repo ships two supporting modules and three worked examples:
 
-- **`modules/network`** — a minimal VPC for greenfield deployments. Optional: skip it if you already have a VPC.
-- **`modules/console`** — a hosted web console behind Google login, running in-VPC next to the engine.
+- **`modules/aws/network`** — a minimal VPC for greenfield deployments. Optional: skip it if you already have a VPC.
+- **`modules/aws/console`** — a hosted web console behind Google login, running in-VPC next to the engine.
 - **`examples/standalone`**, **`examples/existing-vpc`**, **`examples/aurora-source`** — copy-paste starting points for the three common topologies.
 
 All modules require Terraform `>= 1.11` and AWS provider `~> 6.0`.
 
 ## Network module
 
-Module path: `packages/tendb/terraform/modules/network`. A thin wrapper around the community module `terraform-aws-modules/vpc/aws` (`~> 6.0`).
+Module path: `packages/tendb/terraform/modules/aws/network`. A thin wrapper around the community module `terraform-aws-modules/vpc/aws` (`~> 6.0`).
 
 :::tip[When to skip it]
 The engine module only needs a `vpc_id` and a `subnet_id`. If you already have a VPC, skip this module entirely and pass your own — that is exactly what the [existing-vpc example](#examplesexisting-vpc--engine-only-into-an-existing-vpc) does.
@@ -63,15 +63,53 @@ In `public` mode there are no private subnets at all — anything you deploy int
 
 ## Console module
 
-Module path: `packages/tendb/terraform/modules/console`. Hosts the tendb web console — the same server `tendb console` runs locally — on its own EC2 instance in-VPC next to the engine, behind Google login. See [The web console](/guides/console/) for what the console does.
+Module path: `packages/tendb/terraform/modules/aws/console`. Hosts the tendb web console — the same server `tendb console` runs locally — on its own EC2 instance in-VPC next to the engine, behind Google login. See [The web console](/guides/console/) for what the console does.
 
-```
-browser ── HTTPS ──▶ Caddy (:80/:443, automatic Let's Encrypt)
-                       └─▶ oauth2-proxy (:4180 loopback, Google provider,
-                             │            email-domain allow-list)
-                             └─▶ tendb console (:4400 loopback only,
-                                   direct TCP to the engine — no SSM tunnels)
-```
+<figure class="diagram">
+<div class="scroll">
+<svg viewBox="0 0 1210 300" role="img" aria-label="Hosted console request chain: the browser reaches Caddy over HTTPS, oauth2-proxy enforces Google login, and the tendb console dials the engine over direct in-VPC TCP — no SSM tunnels" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="terraform-network-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 10 5 0 10z" fill="currentColor"/>
+</marker>
+</defs>
+<rect x="24" y="150" width="104" height="56" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5"/>
+<text x="76" y="183" text-anchor="middle" font-weight="600">browser</text>
+<line x1="128" y1="178" x2="228" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"/>
+<text x="164" y="168" text-anchor="middle">HTTPS</text>
+<text x="196" y="40" font-size="11" letter-spacing="1.5" fill-opacity="0.6">VPC</text>
+<rect x="192" y="48" width="994" height="228" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5"/>
+<rect x="216" y="76" width="700" height="176" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"/>
+<text x="232" y="104" font-size="14" font-weight="600">console host <tspan font-size="12" font-weight="400" fill-opacity="0.62">— its own EC2 instance</tspan></text>
+<rect x="232" y="120" width="164" height="116" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="248" y="146" font-weight="600">Caddy</text>
+<rect x="248" y="156" width="76" height="26" rx="13" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-opacity="0.25"/>
+<text x="286" y="173" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">:80/:443</text>
+<text x="248" y="206" font-size="12" fill-opacity="0.62">automatic Let's Encrypt</text>
+<line x1="396" y1="178" x2="464" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"/>
+<text x="432" y="168" text-anchor="middle" font-size="12">HTTP</text>
+<rect x="468" y="120" width="176" height="116" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="484" y="146" font-weight="600">oauth2-proxy</text>
+<rect x="484" y="156" width="114" height="26" rx="13" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-opacity="0.25"/>
+<text x="541" y="173" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">:4180 loopback</text>
+<text x="484" y="206" font-size="12" fill-opacity="0.62">Google provider</text>
+<text x="484" y="224" font-size="12" fill-opacity="0.62">email-domain allow-list</text>
+<line x1="644" y1="178" x2="724" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"/>
+<text x="686" y="168" text-anchor="middle" font-size="11">authenticated</text>
+<rect x="728" y="120" width="172" height="116" rx="8" fill="var(--sl-color-accent)" fill-opacity="0.06" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="744" y="146" font-weight="600" fill="var(--sl-color-accent)">tendb console</text>
+<rect x="744" y="156" width="144" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="816" y="173" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">:4400 loopback only</text>
+<line x1="900" y1="178" x2="1026" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"/>
+<text x="968" y="168" text-anchor="middle" font-size="12">direct TCP</text>
+<text x="968" y="196" text-anchor="middle" font-size="11" fill-opacity="0.62">no SSM tunnels</text>
+<rect x="1030" y="146" width="132" height="64" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"/>
+<text x="1096" y="172" text-anchor="middle" font-weight="600">engine host</text>
+<text x="1096" y="192" text-anchor="middle" font-size="12" fill-opacity="0.62">DBLab API <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">:2345</tspan></text>
+</svg>
+</div>
+<figcaption>TLS ends at Caddy and identity at oauth2-proxy before a request reaches the console, which dials the engine directly in-VPC — no SSM tunnels.</figcaption>
+</figure>
 
 The DBLab verification token, clone credentials, and AWS access stay on the console host; the browser only ever sees the authenticated console UI. The host is a `t3.small` (by default) running Ubuntu 24.04, IMDSv2-only, no SSH — admin goes through SSM Session Manager. An Elastic IP gives it a stable address. Cost: roughly **$18/mo** (t3.small + EIP + 16 GB gp3).
 
@@ -161,7 +199,7 @@ Provisions:
 - The **network module** with all defaults (`public` mode).
 - The **engine module**, wired to the network outputs: `allowed_cidr_blocks = [module.network.vpc_cidr]` (in-VPC clients — the CLI tunnels via SSM regardless), `create_client_iam_policy = true`, plus pass-throughs for `size`, `postgres_major_version`, the source secret, `dump_exclude_extensions`, `sync_target_port`, `streaming_snapshots`, and `ami_id`.
 - Optionally, a console in one of two hosting modes:
-  - **Dedicated console** (`enable_console = true`): instantiates `modules/console` as `<name>-console` in the network's engine subnet (public in the default network mode).
+  - **Dedicated console** (`enable_console = true`): instantiates `modules/aws/console` as `<name>-console` in the network's engine subnet (public in the default network mode).
   - **Console-on-engine** (`console_on_engine = true`): the cheapest hosting — no second instance. Terraform owns a dedicated console EIP (held at the root so the URL, OAuth redirect, and certificate name survive stack changes), the package S3 bucket the on-host updater polls, and an extra IAM policy on the engine role (package read, OAuth secret read, and `ssm:PutParameter` on the console-writable subtrees). It also sets `console_ingress = true` on the engine, which opens 80/443 as SG rules without touching user-data. The console software itself is installed **out of band** over SSM by `terraform/scripts/engine-console-install.sh`, because the engine's user-data is frozen.
 
 The source secret is created out of band so the URL never lands in Terraform state:

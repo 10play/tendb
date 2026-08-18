@@ -46,21 +46,45 @@ no SSH and no inbound internet: the CLI discovers it through SSM parameters,
 reaches it through SSM Session Manager port-forwards, and derives clone
 passwords locally — no credentials are stored anywhere.
 
-```
-                 AWS account (yours)
-  ┌───────────────────────────────────────────────┐
-  │  EC2 host — ZFS + DBLab Engine                │        sync
-  │  ┌─────────────────────────────────────────┐  │  ◄───────────────  source Postgres
-  │  │ dblab-server :2345                      │  │   (dump/restore    (Neon, Aurora,
-  │  │ clone :6000   clone :6001   clone :6002 │  │    or streaming)    RDS, any URL)
-  │  └─────────────────────────────────────────┘  │
-  │        ▲  no SSH, no inbound internet         │
-  └────────┼──────────────────────────────────────┘
-           │  SSM Session Manager port-forwards
-     ┌─────┴─────┐
-     │   tendb   │   CLI · web console · CI · SDK
-     └───────────┘
-```
+<figure class="diagram">
+<div class="scroll">
+<svg viewBox="0 0 966 240" role="img" aria-label="tendb overview: the tendb clients reach one EC2 host in your AWS account through SSM Session Manager port-forwards; the host syncs from your source Postgres and serves copy-on-write clone databases" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="intro-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 10 5 0 10z" fill="currentColor"/>
+</marker>
+</defs>
+<rect x="20" y="90" width="150" height="84" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"/>
+<text x="38" y="118" font-size="14" font-weight="600" fill="var(--sl-color-accent)">tendb</text>
+<text x="38" y="140" font-size="12" fill-opacity="0.62">CLI · web console</text>
+<text x="38" y="158" font-size="12" fill-opacity="0.62">CI · SDK</text>
+<line x1="170" y1="132" x2="312" y2="132" stroke="currentColor" stroke-width="1.5" marker-end="url(#intro-arrow)"/>
+<text x="236" y="106" text-anchor="middle">SSM Session Manager</text>
+<text x="236" y="123" text-anchor="middle">port-forwards</text>
+<text x="304" y="34" font-size="11" letter-spacing="1.5" fill-opacity="0.6">AWS ACCOUNT (YOURS)</text>
+<rect x="300" y="44" width="332" height="176" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="6 6"/>
+<rect x="316" y="60" width="300" height="144" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"/>
+<text x="332" y="84"><tspan font-weight="600">EC2 host</tspan> <tspan fill-opacity="0.62">— ZFS + DBLab Engine</tspan></text>
+<rect x="332" y="98" width="268" height="32" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="348" y="119"><tspan font-weight="600">dblab-server</tspan> <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">:2345</tspan></text>
+<rect x="332" y="144" width="84" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="374" y="161" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">clone :6000</text>
+<rect x="424" y="144" width="84" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="466" y="161" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">clone :6001</text>
+<rect x="516" y="144" width="84" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="558" y="161" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">clone :6002</text>
+<text x="332" y="192" font-size="12" fill-opacity="0.62">no SSH, no inbound internet</text>
+<line x1="760" y1="132" x2="620" y2="132" stroke="currentColor" stroke-width="1.5" marker-end="url(#intro-arrow)"/>
+<text x="696" y="118" text-anchor="middle">sync</text>
+<text x="696" y="156" text-anchor="middle" font-size="12" fill-opacity="0.62">nightly dump/restore</text>
+<text x="696" y="174" text-anchor="middle" font-size="12" fill-opacity="0.62">or streaming</text>
+<rect x="760" y="102" width="186" height="60" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5"/>
+<text x="853" y="126" text-anchor="middle" font-weight="600">source Postgres</text>
+<text x="853" y="148" text-anchor="middle" font-size="12" fill-opacity="0.62">Neon · Aurora · RDS · any URL</text>
+</svg>
+</div>
+<figcaption>One EC2 host in your AWS account: clients tunnel in over SSM, data syncs in from your source Postgres, and every branch is a clone on its own port.</figcaption>
+</figure>
 
 ## A four-line session
 

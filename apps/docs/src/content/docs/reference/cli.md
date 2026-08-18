@@ -21,6 +21,7 @@ These flags work on every leaf command:
 | Flag | Default | Meaning |
 |---|---|---|
 | `--env <name>` | — | Select an environment block from `tendb.json` |
+| `--platform <name>` | `aws` | Platform adapter: `aws`, `gcp`, `azure`, or `local` |
 | `--region <region>` | — | AWS region |
 | `--profile <profile>` | — | AWS profile (loaded via the shared credentials file) |
 | `--ssm-prefix <prefix>` | `/tendb` | SSM parameter prefix |
@@ -415,7 +416,7 @@ Prints `tendb console: http://localhost:<port>` on stderr and blocks until Ctrl-
 tendb ui [--no-open]
 ```
 
-Opens the DBLab Engine's own embedded UI through two fixed-port tunnels: UI on `localhost:2346` and API on `localhost:2345` (the UI's browser code calls `localhost:2345`, so local ports must match the remote ones exactly). Blocks until Ctrl-C. SSM transport only — in direct mode it exits 2, because the embedded UI is bound to the host's loopback.
+Opens the DBLab Engine's own embedded UI through two fixed-port tunnels: UI on `localhost:2346` and API on `localhost:2345` (the UI's browser code calls `localhost:2345`, so local ports must match the remote ones exactly). Blocks until Ctrl-C. Needs a tunneling platform session — in direct `--api-url` mode it exits 2, because the embedded UI is bound to the host's loopback.
 
 | Flag | Meaning |
 |---|---|

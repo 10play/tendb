@@ -1,5 +1,5 @@
 ---
-title: Web Console
+title: The web console
 description: Run the tendb console locally with one command, or host it in your VPC behind Google login with the Terraform console module.
 ---
 
@@ -74,7 +74,7 @@ The console server itself runs the health check every 60 seconds, diffs findings
 
 ### `tendb console` vs `tendb ui`
 
-`tendb ui` is a different, lower-level command: it tunnels to **DBLab's own embedded engine UI** (fixed ports 2346 for the UI, 2345 for the API) and prints the verification token for you to paste into its auth field. Use it for raw engine administration; use `tendb console` for everything day-to-day. `tendb ui` requires the SSM transport. Full details in the [CLI reference](/reference/cli/).
+`tendb ui` is a different, lower-level command: it tunnels to **DBLab's own embedded engine UI** (fixed ports 2346 for the UI, 2345 for the API) and prints the verification token for you to paste into its auth field. Use it for raw engine administration; use `tendb console` for everything day-to-day. `tendb ui` requires a tunneling platform session (it exits 2 in direct `--api-url` mode). Full details in the [CLI reference](/reference/cli/).
 
 ## Hosted console (optional)
 
@@ -130,7 +130,7 @@ Using the module directly instead:
 
 ```hcl
 module "console" {
-  source = "github.com/10play/tendb//packages/tendb/terraform/modules/console"
+  source = "github.com/10play/tendb//packages/tendb/terraform/modules/aws/console"
 
   vpc_id    = module.network.vpc_id
   subnet_id = module.network.engine_subnet_id # must be a PUBLIC subnet

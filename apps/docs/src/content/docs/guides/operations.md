@@ -17,7 +17,7 @@ tendb is a single EC2 host running DBLab Engine, discovered through SSM paramete
 | `sync mode` | Retrieval mode (logical dump/restore vs streaming) | Should match your Terraform config |
 | `sync status` | Whether a refresh is running right now | A refresh "running" for hours on a small source is a stuck refresh |
 | `last refresh` / `next refresh` | Engine's refresh timestamps and schedule | `next refresh` in the past that never fires → clones are blocking it |
-| `data state at` | Timestamp of the snapshot backing new branches | Older than ~a day → see [stale data](#stale-data-clones-block-the-refresh) |
+| `data state at` | Timestamp of the snapshot backing new branches | Older than ~a day → clones are blocking the refresh; see [the skip rule](/concepts/data-refresh/#the-skip-while-clones-exist-rule) |
 | `disk` | ZFS pool usage: `X.XG used / Y.YG (Z.ZG free)` | Compare against the 80% / 92% checkup thresholds |
 | `clones` | `n / cap` — running clones vs port-pool capacity | Near cap → deletes needed before new branches fit |
 

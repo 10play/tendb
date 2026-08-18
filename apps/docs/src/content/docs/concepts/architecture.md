@@ -5,33 +5,54 @@ description: How tendb serves Neon-style Postgres branches from a single EC2 hos
 
 tendb is a thin layer of Terraform, AWS plumbing, and CLI ergonomics around [DBLab Engine](https://github.com/postgres-ai/database-lab-engine) (Database Lab Engine, by Postgres.ai) — the open-source engine that does the actual heavy lifting of snapshotting and thin-cloning Postgres on ZFS. One EC2 host in your AWS account syncs from your source database and serves copy-on-write branch databases. There is no control plane, no tendb service, and no state anywhere except the host itself.
 
-```
-                     your laptop / CI runner
-  +--------------------------------------------------------------+
-  |  tendb CLI                                                   |
-  |   |-- AWS SDK --> SSM API  (GetParameter, StartSession)      |
-  |   '-- session-manager-plugin  (local port forwards)          |
-  +------------------------------+-------------------------------+
-                                 | outbound TLS to AWS SSM only
-                                 | (no inbound ports on the host)
-  ------------------------------ | ------------------ AWS account
-                                 v
-  +----------------------- EC2 engine host ----------------------+
-  |  SSM agent  (receives the port-forward sessions)             |
-  |                                                              |
-  |  DBLab Engine (Docker, postgresai/dblab-server)              |
-  |    |-- API          :2345                                    |
-  |    |-- embedded UI  127.0.0.1:2346   (loopback only)         |
-  |    '-- clone Postgres containers  :6000-6009 (port pool)     |
-  |                                                              |
-  |  ZFS pool "dblab_pool"  (dedicated gp3 EBS volume, lz4)      |
-  |    |-- restored source data + logical dump                   |
-  |    '-- copy-on-write clone datasets (one per branch)         |
-  +------------------------------+-------------------------------+
-                                 | outbound only (pg_dump)
-                                 v
-              source Postgres (Neon, Aurora, RDS, any URL)
-```
+<figure class="diagram">
+<div class="scroll">
+<svg viewBox="0 0 760 648" role="img" aria-label="tendb architecture: the CLI reaches the EC2 engine host only through SSM port-forwards; the host syncs outbound from the source Postgres and serves copy-on-write clones" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 10 5 0 10z" fill="currentColor"/>
+</marker>
+</defs>
+<text x="44" y="24" font-size="11" letter-spacing="1.5" fill-opacity="0.6">YOUR LAPTOP / CI RUNNER</text>
+<rect x="40" y="36" width="680" height="112" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"/>
+<text x="64" y="68" font-size="14" font-weight="600" fill="var(--sl-color-accent)">tendb CLI</text>
+<text x="64" y="97">AWS SDK <tspan fill-opacity="0.55">→</tspan> SSM API <tspan fill-opacity="0.62">(GetParameter, StartSession)</tspan></text>
+<text x="64" y="124"><tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">session-manager-plugin</tspan> <tspan fill-opacity="0.62">— local port forwards</tspan></text>
+<line x1="380" y1="148" x2="380" y2="234" stroke="currentColor" stroke-width="1.5" marker-end="url(#arch-arrow)"/>
+<text x="396" y="180">outbound TLS to AWS SSM only</text>
+<text x="396" y="198" fill-opacity="0.62">no inbound ports on the host</text>
+<line x1="40" y1="216" x2="360" y2="216" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="6 6"/>
+<line x1="400" y1="216" x2="614" y2="216" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="6 6"/>
+<text x="720" y="220" text-anchor="end" font-size="11" letter-spacing="1.5" fill-opacity="0.6">AWS ACCOUNT</text>
+<rect x="40" y="238" width="680" height="272" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"/>
+<text x="64" y="268" font-size="14" font-weight="600">EC2 engine host</text>
+<rect x="60" y="282" width="640" height="36" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="76" y="305"><tspan font-weight="600">SSM agent</tspan> <tspan fill-opacity="0.62">— receives the port-forward sessions</tspan></text>
+<rect x="60" y="330" width="640" height="86" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="76" y="356"><tspan font-weight="600">DBLab Engine</tspan> <tspan fill-opacity="0.62">(Docker — postgresai/dblab-server)</tspan></text>
+<rect x="76" y="370" width="104" height="26" rx="13" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-opacity="0.25"/>
+<text x="128" y="387" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">API :2345</text>
+<rect x="192" y="370" width="196" height="26" rx="13" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-opacity="0.25"/>
+<text x="290" y="387" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">UI 127.0.0.1:2346 <tspan fill-opacity="0.62">loopback</tspan></text>
+<rect x="400" y="370" width="100" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="450" y="387" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">clone :6000</text>
+<rect x="512" y="370" width="100" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="562" y="387" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">clone :6001</text>
+<rect x="624" y="370" width="60" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="654" y="387" text-anchor="middle" font-size="11.5" fill="var(--sl-color-accent)">…</text>
+<rect x="60" y="428" width="640" height="68" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="76" y="454"><tspan font-weight="600">ZFS pool </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">dblab_pool</tspan> <tspan fill-opacity="0.62">(dedicated gp3 EBS volume, lz4)</tspan></text>
+<text x="76" y="479" fill-opacity="0.62">restored source data + logical dump</text>
+<text x="356" y="479" fill="var(--sl-color-accent)">+ copy-on-write clone datasets — one per branch</text>
+<line x1="380" y1="510" x2="380" y2="556" stroke="currentColor" stroke-width="1.5" marker-end="url(#arch-arrow)"/>
+<text x="396" y="540" fill-opacity="0.62">outbound only — pg_dump</text>
+<rect x="210" y="560" width="340" height="62" rx="10" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5" fill="none"/>
+<text x="380" y="586" text-anchor="middle" font-weight="600">source Postgres</text>
+<text x="380" y="608" text-anchor="middle" font-size="12" fill-opacity="0.62">Neon · Aurora · RDS · any URL</text>
+</svg>
+</div>
+<figcaption>One SSM-tunneled path in, one outbound sync path out — the host accepts no inbound connections.</figcaption>
+</figure>
 
 ## The engine host
 

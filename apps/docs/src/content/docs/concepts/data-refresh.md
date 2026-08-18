@@ -7,21 +7,49 @@ Every branch you create is a copy-on-write thin clone of a ZFS snapshot on the e
 
 The refresh pipeline is DBLab Engine's retrieval subsystem (jobs `logicalDump → logicalRestore → logicalSnapshot`), configured by the tendb Terraform [engine module](/reference/terraform-engine/).
 
-```
-source Postgres (Neon / Aurora / RDS / any URL)
-        │
-        │  1. pg_dump  (parallel jobs per size preset)
-        ▼
-/var/lib/dblab/dblab_pool/dump ─────────┐
-        │                               │
-        │  2. pg_restore (parallel)     │  same ZFS pool
-        ▼                               │  (lz4, gp3 EBS, dies with the host)
-/var/lib/dblab/dblab_pool/data ─────────┘
-        │
-        │  3. zfs snapshot  ("data state at" timestamp)
-        ▼
-   snapshot ──► thin-clone branches (pr-42, my-feature, ...)
-```
+<figure class="diagram">
+<div class="scroll">
+<svg viewBox="0 0 600 496" role="img" aria-label="Refresh pipeline: pg_dump from the source Postgres into the pool's dump directory, pg_restore into the data directory on the same ZFS pool, then a ZFS snapshot that thin-clone branches are created from" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="refresh-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 10 5 0 10z" fill="currentColor"/>
+</marker>
+</defs>
+<rect x="90" y="16" width="320" height="62" rx="10" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5" fill="none"/>
+<text x="250" y="42" text-anchor="middle" font-weight="600">source Postgres</text>
+<text x="250" y="64" text-anchor="middle" font-size="12" fill-opacity="0.62">Neon · Aurora · RDS · any URL</text>
+<line x1="250" y1="78" x2="250" y2="136" stroke="currentColor" stroke-width="1.5" marker-end="url(#refresh-arrow)"/>
+<text x="266" y="100"><tspan font-weight="600">1</tspan>  <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">pg_dump</tspan></text>
+<text x="266" y="118" font-size="12" fill-opacity="0.62">parallel jobs per size preset</text>
+<rect x="90" y="140" width="320" height="44" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="250" y="167" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">/var/lib/dblab/dblab_pool/dump</text>
+<line x1="250" y1="184" x2="250" y2="242" stroke="currentColor" stroke-width="1.5" marker-end="url(#refresh-arrow)"/>
+<text x="266" y="206"><tspan font-weight="600">2</tspan>  <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">pg_restore</tspan></text>
+<text x="266" y="224" font-size="12" fill-opacity="0.62">parallel</text>
+<rect x="90" y="246" width="320" height="44" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"/>
+<text x="250" y="273" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">/var/lib/dblab/dblab_pool/data</text>
+<path d="M418 140 H430 V290 H418" fill="none" stroke="currentColor" stroke-opacity="0.3"/>
+<text x="444" y="200" font-weight="600">same ZFS pool</text>
+<text x="444" y="220" font-size="12" fill-opacity="0.62">lz4 · gp3 EBS</text>
+<text x="444" y="238" font-size="12" fill-opacity="0.62">dies with the host</text>
+<line x1="250" y1="290" x2="250" y2="348" stroke="currentColor" stroke-width="1.5" marker-end="url(#refresh-arrow)"/>
+<text x="266" y="312"><tspan font-weight="600">3</tspan>  <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">zfs snapshot</tspan></text>
+<text x="266" y="330" font-size="12" fill-opacity="0.62">&quot;data state at&quot; timestamp</text>
+<rect x="140" y="352" width="220" height="44" rx="10" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="250" y="379" text-anchor="middle" font-weight="600" fill="var(--sl-color-accent)">snapshot</text>
+<line x1="250" y1="396" x2="250" y2="448" stroke="currentColor" stroke-width="1.5" marker-end="url(#refresh-arrow)"/>
+<text x="266" y="416" fill="var(--sl-color-accent)">thin-clone branches</text>
+<text x="266" y="434" font-size="12" fill-opacity="0.62">copy-on-write, one per branch</text>
+<rect x="123" y="452" width="76" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="161" y="469" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">pr-42</text>
+<rect x="211" y="452" width="110" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="266" y="469" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">my-feature</text>
+<rect x="333" y="452" width="44" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="355" y="469" text-anchor="middle" font-size="11.5" fill="var(--sl-color-accent)">…</text>
+</svg>
+</div>
+<figcaption>A refresh is three sequential steps — dump, restore, snapshot — with the dump files and restored data sharing one ZFS pool, and every branch thin-cloned from the resulting snapshot.</figcaption>
+</figure>
 
 ## First sync at boot
 

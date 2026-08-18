@@ -35,6 +35,11 @@ All fields are optional:
 | `cloneTimeoutSeconds` | positive integer | `120` | How long to wait for a clone to reach `OK` |
 | `replicationPublisherUrl` | string | SSM `<prefix>/replication/publisher-url` | Upstream replication endpoint, for the sync view and `checkup` |
 | `replicationSubscriberUrl` | string | SSM `<prefix>/replication/subscriber-url` | Sync-target endpoint, same consumers |
+| `platform` | `"aws"` \| `"gcp"` \| `"azure"` \| `"local"` | `aws` | Platform adapter for the session. `aws` (the SSM transport documented on this page) is the default; the others swap in the matching secret/param store and tunnel transport |
+| `paramPrefix` | string, must start with `/` | — | Platform-neutral alias of `ssmPrefix` (the engine contract's canonical name). When both appear in the same precedence layer, `paramPrefix` wins |
+| `gcpProject` | string | the gcloud CLI's project | `gcp` platform only: Secret Manager project holding the engine-contract params |
+| `azureVault` | string | — | `azure` platform only: Key Vault name holding the engine-contract params |
+| `stateDir` | string | `~/.tendb/local` | `local` platform only: state directory containing `params.json` |
 | `environments` | object of the above | — | Named environment blocks (top level only); select with `--env` / `TENDB_ENV` |
 
 ### Environments
@@ -62,7 +67,9 @@ Selecting an environment that does not exist in the file exits 2 with `environme
 | Variable | Maps to |
 |---|---|
 | `TENDB_ENV` | `--env` |
+| `TENDB_PLATFORM` | `platform` |
 | `TENDB_SSM_PREFIX` | `ssmPrefix` |
+| `TENDB_PARAM_PREFIX` | `paramPrefix` |
 | `TENDB_REGION` | `region` — falls back to `AWS_REGION` when unset |
 | `TENDB_PROFILE` | `profile` |
 | `TENDB_INSTANCE_ID` | `instanceId` |
@@ -73,9 +80,12 @@ Selecting an environment that does not exist in the file exits 2 with `environme
 | `TENDB_CLONE_TIMEOUT` | `cloneTimeoutSeconds` |
 | `TENDB_REPLICATION_PUBLISHER_URL` | `replicationPublisherUrl` |
 | `TENDB_REPLICATION_SUBSCRIBER_URL` | `replicationSubscriberUrl` |
+| `TENDB_GCP_PROJECT` | `gcpProject` |
+| `TENDB_AZURE_VAULT` | `azureVault` |
+| `TENDB_STATE_DIR` | `stateDir` |
 | `TENDB_CONFIG` | `--config` (explicit path to `tendb.json`) |
 
-`TENDB_STATE_DIR` is not a config field: when set (the hosted service sets it), `tendb console` persists its alert feed and seen-findings map to `<dir>/alerts.json` so a restart doesn't replay Slack alerts.
+`TENDB_STATE_DIR` does double duty: besides mapping to the `stateDir` field, when set (the hosted service sets it), `tendb console` persists its alert feed and seen-findings map to `<dir>/alerts.json` so a restart doesn't replay Slack alerts.
 
 :::caution
 Two things to watch:
@@ -147,7 +157,7 @@ What changes in direct mode:
 
 ## Global flags
 
-Every leaf command accepts the shared flag set (`--env`, `--region`, `--profile`, `--ssm-prefix`, `--instance-id`, `--api-url`, `--config`, `-o/--output`, `--quiet`). Flags sit at the top of the precedence order, above environment variables and `tendb.json`. Write them **after** the subcommand — see the [CLI reference](/reference/cli/#global-flags) for the full table and the reasoning.
+Every leaf command accepts the shared flag set (`--env`, `--platform`, `--region`, `--profile`, `--ssm-prefix`, `--instance-id`, `--api-url`, `--config`, `-o/--output`, `--quiet`). Flags sit at the top of the precedence order, above environment variables and `tendb.json`. Write them **after** the subcommand — see the [CLI reference](/reference/cli/#global-flags) for the full table and the reasoning.
 
 ## Programmatic use
 

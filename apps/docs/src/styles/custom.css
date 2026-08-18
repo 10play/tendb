@@ -1,41 +1,133 @@
-/* tendb docs theme — emerald accent over a cool neutral base. */
+/* tendb docs — 10play brand theme (https://10play.dev)
+   Accent: 10play pink #FF0A54; neutrals tinted toward 10play navy #14161F. */
 
 :root {
-  /* Accent (emerald) */
-  --sl-color-accent-low: #063d2e;
-  --sl-color-accent: #059669;
-  --sl-color-accent-high: #a7f3d0;
+  /* Accent (10play pink) — dark theme */
+  --sl-color-accent-low: #4b0421;
+  --sl-color-accent: #ff0a54;
+  --sl-color-accent-high: #ffc6d3;
 
-  /* Slightly cool grays for the dark theme */
+  /* Navy-tinted neutrals — dark theme */
   --sl-color-white: #ffffff;
-  --sl-color-gray-1: #e7eef1;
-  --sl-color-gray-2: #bac4c8;
-  --sl-color-gray-3: #7f8f96;
-  --sl-color-gray-4: #4c5960;
-  --sl-color-gray-5: #2c3940;
-  --sl-color-gray-6: #1b262c;
-  --sl-color-black: #121a1f;
+  --sl-color-gray-1: #e4e6ec;
+  --sl-color-gray-2: #b8bcc8;
+  --sl-color-gray-3: #7d8399;
+  --sl-color-gray-4: #4c5265;
+  --sl-color-gray-5: #2a2e3d;
+  --sl-color-gray-6: #1c1f2b;
+  --sl-color-black: #14161f;
 }
 
 :root[data-theme='light'] {
-  --sl-color-accent-low: #c7f0dd;
-  --sl-color-accent: #047857;
-  --sl-color-accent-high: #064e3b;
+  /* Accent (10play pink, darkened for contrast on white) — light theme */
+  --sl-color-accent-low: #ffc6d3;
+  --sl-color-accent: #d1003f;
+  --sl-color-accent-high: #74001f;
 
-  --sl-color-white: #17242b;
-  --sl-color-gray-1: #24333b;
-  --sl-color-gray-2: #35444c;
-  --sl-color-gray-3: #58676e;
-  --sl-color-gray-4: #8b9aa1;
-  --sl-color-gray-5: #c6d0d5;
-  --sl-color-gray-6: #eef2f4;
-  --sl-color-gray-7: #f7f9fa;
+  /* 10play's light, minimal neutrals */
+  --sl-color-white: #14161f;
+  --sl-color-gray-1: #232736;
+  --sl-color-gray-2: #353a4d;
+  --sl-color-gray-3: #585e73;
+  --sl-color-gray-4: #8a90a2;
+  --sl-color-gray-5: #c9ccd6;
+  --sl-color-gray-6: #f0f1f4;
+  --sl-color-gray-7: #f7f8fa;
   --sl-color-black: #ffffff;
 }
 
-/* Landing hero: gradient title, roomier tagline */
+/* Diagrams: theme-aware inline SVG figures */
+figure.diagram {
+  margin: 1.75rem 0;
+}
+figure.diagram .scroll {
+  overflow-x: auto;
+}
+figure.diagram svg {
+  display: block;
+  min-width: 620px;
+  width: 100%;
+  height: auto;
+}
+figure.diagram figcaption {
+  text-align: center;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+  margin-top: 0.65rem;
+}
+
+/* Cards: on hover, a pink light traces the border — no movement, border only.
+   The ring is a conic gradient masked down to the 1px border area; ::before is
+   a blurred copy that reads as glow. Browsers without @property support show a
+   static accent segment instead of the rotation. */
+@property --card-glow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.card {
+  position: relative;
+  transition: border-color 0.25s ease;
+}
+.card:hover {
+  border-color: color-mix(in srgb, var(--sl-color-accent) 30%, var(--sl-color-gray-5));
+}
+
+.card::before,
+.card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--card-glow-angle, 0deg),
+    transparent 0deg,
+    var(--sl-color-accent) 55deg,
+    transparent 110deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: card-glow-spin 3.5s linear infinite paused;
+  pointer-events: none;
+}
+.card::before {
+  filter: blur(6px);
+}
+.card:hover::before {
+  opacity: 0.6;
+  animation-play-state: running;
+}
+.card:hover::after {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+@keyframes card-glow-spin {
+  to {
+    --card-glow-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card::before,
+  .card::after {
+    animation: none;
+  }
+}
+
+/* Landing hero: gradient title toward the brand pink, roomier tagline */
 [data-has-hero] .hero h1 {
-  background: linear-gradient(90deg, var(--sl-color-white), var(--sl-color-accent));
+  background: linear-gradient(90deg, var(--sl-color-white), #ff0a54);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

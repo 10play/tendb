@@ -7,7 +7,7 @@ The engine module builds the tendb host: one EC2 instance (Ubuntu 24.04, ZFS on 
 
 The module is private-first by design: no SSH, no key pair, IMDSv2 only. Admin access goes through SSM Session Manager, and clients (the tendb CLI, CI) reach the host through SSM port-forwards — no inbound security group rules required. See [Security model](/concepts/security/) for the full posture.
 
-Module path in the repo: `packages/tendb/terraform/modules/engine`.
+Module path in the repo: `packages/tendb/terraform/modules/aws/engine`.
 
 ## Requirements
 
@@ -18,7 +18,7 @@ Module path in the repo: `packages/tendb/terraform/modules/engine`.
 
 ```hcl
 module "engine" {
-  source = "git::https://github.com/10play/tendb.git//packages/tendb/terraform/modules/engine?ref=main"
+  source = "git::https://github.com/10play/tendb.git//packages/tendb/terraform/modules/aws/engine?ref=main"
 
   name      = "tendb"
   vpc_id    = "vpc-0123456789abcdef0"

@@ -46,12 +46,36 @@ Things Neon has that tendb has no equivalent for at all: connection pooler endpo
 
 **Use both.** tendb's source is any Postgres URL, so a common setup is Neon (or Aurora) as production and tendb serving the disposable copies:
 
-```
-Neon production ──nightly dump / logical replication──▶ tendb host (EC2 + ZFS)
-                                                          ├── pr-42   (CoW clone)
-                                                          ├── pr-43   (CoW clone)
-                                                          └── staging (CoW clone)
-```
+<figure class="diagram">
+<div class="scroll">
+<svg viewBox="0 0 720 220" role="img" aria-label="Combined topology: Neon production stays managed while the tendb host (EC2 + ZFS) syncs from it via nightly dump or logical replication and serves copy-on-write clones pr-42, pr-43, and staging" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="neon-parity-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 10 5 0 10z" fill="currentColor"/>
+</marker>
+</defs>
+<rect x="32" y="87" width="176" height="52" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5"/>
+<text x="120" y="118" text-anchor="middle" font-size="14" font-weight="600">Neon production</text>
+<line x1="208" y1="113" x2="338" y2="113" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"/>
+<text x="273" y="84" text-anchor="middle">nightly dump /</text>
+<text x="273" y="102" text-anchor="middle">logical replication</text>
+<rect x="344" y="77" width="144" height="72" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"/>
+<text x="416" y="107" text-anchor="middle" font-size="14" font-weight="600">tendb host</text>
+<text x="416" y="129" text-anchor="middle" font-size="12" fill-opacity="0.62">EC2 + ZFS</text>
+<line x1="488" y1="113" x2="586" y2="53" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"/>
+<line x1="488" y1="113" x2="586" y2="113" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"/>
+<line x1="488" y1="113" x2="586" y2="173" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"/>
+<text x="640" y="24" text-anchor="middle" font-size="12" fill-opacity="0.62">CoW clones</text>
+<rect x="592" y="40" width="96" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="640" y="57" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="var(--sl-color-accent)">pr-42</text>
+<rect x="592" y="100" width="96" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="640" y="117" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="var(--sl-color-accent)">pr-43</text>
+<rect x="592" y="160" width="96" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"/>
+<text x="640" y="177" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="var(--sl-color-accent)">staging</text>
+</svg>
+</div>
+<figcaption>Neon keeps serving production while the tendb host syncs from it and fans out disposable copy-on-write branches.</figcaption>
+</figure>
 
 Production keeps its managed HA, PITR, and autoscaling; PR previews, migration rehearsals, and ad-hoc experiments hammer clones in your VPC instead of consuming production compute. Set it up in the [Quickstart](/getting-started/quickstart/).
 
