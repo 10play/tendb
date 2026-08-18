@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "description": "Neon-style Postgres branching: CLI + local console for DBLab (Database Lab Engine), reachable over AWS SSM",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/10play/tendb.git",
+    "directory": "packages/tendb/cli"
+  },
+  "homepage": "https://10play.github.io/tendb/",
+  "bugs": "https://github.com/10play/tendb/issues",
   "type": "module",
   "packageManager": "pnpm@9.15.4",
   "bin": {

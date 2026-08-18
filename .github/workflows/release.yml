@@ -1,0 +1,51 @@
+name: release
+
+# Publishes @10play/tendb to npm via OIDC trusted publishing on version tags.
+# No NPM_TOKEN anywhere: npm ≥ 11.5.1 exchanges the job's OIDC token for a
+# short-lived credential, and provenance attestations are generated
+# automatically. Requires the trusted publisher configured on npmjs.com
+# (package settings → Trusted Publisher → GitHub Actions: 10play/tendb,
+# workflow release.yml) — and note npm authorizes THIS caller workflow file,
+# so don't move the publish step into a reusable workflow.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    # OIDC trusted publishing works only on GitHub-hosted runners.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # the OIDC exchange — the whole point
+    defaults:
+      run:
+        working-directory: packages/tendb/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+          registry-url: "https://registry.npmjs.org"
+      # Runners ship an npm too old for OIDC (needs ≥ 11.5.1) and it fails
+      # SILENTLY by falling back to token auth — pin latest explicitly.
+      - run: npm install -g npm@latest && npm --version
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      # The tag, package.json, and the scaffolder's pinned module ref must
+      # all agree — a mismatch ships a CLI whose terraform points at the
+      # wrong (or a nonexistent) tag.
+      - name: Check tag ↔ version ↔ module-ref lockstep
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="v$(node -p "require('./package.json').version")"
+          REF="$(sed -n 's/.*DEFAULT_MODULE_REF = "\(v[^"]*\)".*/\1/p' src/scaffold/constants.ts)"
+          echo "tag=$TAG version=$VERSION module-ref=$REF"
+          test "$TAG" = "$VERSION" || { echo "::error::tag $TAG != package.json $VERSION"; exit 1; }
+          test "$TAG" = "$REF" || { echo "::error::tag $TAG != DEFAULT_MODULE_REF $REF"; exit 1; }
+      # prepublishOnly runs the full build + test suite.
+      - run: npm publish --access public
