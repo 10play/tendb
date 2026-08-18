@@ -1,0 +1,5 @@
+# lock files ARE committed (repo convention)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan

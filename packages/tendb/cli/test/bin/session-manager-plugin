@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+// Test shim for the AWS session-manager-plugin: honors the six-argv contract
+// and TCP-proxies 127.0.0.1:<localPortNumber> to the target encoded in
+// StreamUrl as tcp://host:port by the fake SSM facade.
+// ESM (the nearest package.json is "type": "module").
+import net from "node:net";
+
+const session = JSON.parse(process.argv[2]);
+const params = JSON.parse(process.argv[6]);
+const localPort = Number(params.Parameters.localPortNumber[0]);
+const target = new URL(session.StreamUrl); // tcp://127.0.0.1:<port>
+
+const server = net.createServer((client) => {
+  const upstream = net.connect({ host: target.hostname, port: Number(target.port) });
+  client.pipe(upstream).pipe(client);
+  client.on("error", () => upstream.destroy());
+  upstream.on("error", () => client.destroy());
+});
+server.listen(localPort, "127.0.0.1");
+process.on("SIGTERM", () => process.exit(0));

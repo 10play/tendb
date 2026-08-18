@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+@source "../index.html";
+@source "./";
+
+/* Any future `dark:` utility should follow the root class, not the OS query —
+   the app decides the theme, and "system" is only one of three settings. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * tendb console tokens — Neon-console-flavoured neutrals.
+ *
+ * The layout language mirrors console.neon.tech: a slightly *lighter* sidebar
+ * surface (`raised`) against a near-black canvas, hairline #2e2e2e borders,
+ * 6px radii, 32px controls, and a neutral "contrast" primary button (white in
+ * dark, black in light). Green stays reserved for health, the Connect action
+ * and the logo mark — exactly the discipline Neon applies to its own green.
+ *
+ * Typographic rule kept from before: identifiers the *engine* owns (URIs,
+ * ports, snapshot ids, SQL, result cells) are mono; everything tendb says
+ * to you (prose, headings, buttons, table headers) is the UI face.
+ *
+ * Colour is entirely semantic: components name a role (canvas, panel, ink,
+ * accent), never a shade. Dark is the default set below and `html.light`
+ * remaps every value, so no component carries a per-theme variant.
+ */
+@theme {
+  --color-canvas: #161616;
+  --color-panel: #1c1c1c;
+  --color-raised: #262626;
+  --color-pill: #3b3b3b;
+  --color-line: #2e2e2e;
+  --color-line-strong: #4a4a4a;
+  --color-ink: #ebebeb;
+  --color-dim: #b0b0b0;
+  --color-faint: #949494;
+
+  /* Neutral primary: Neon's "New Branch" button is a light fill on dark. */
+  --color-contrast: #f7f7f7;
+  --color-on-contrast: #161616;
+
+  /* `accent` fills, borders and bars; `accent-ink` is the text-safe variant,
+     identical in dark and darkened in light where vivid green cannot carry
+     small text. */
+  --color-accent: #00e599;
+  --color-accent-ink: #00e599;
+  --color-accent-hover: #4dedb6;
+  --color-accent-deep: #00a870;
+  --color-on-accent: #06120d;
+
+  --color-warn: #f5a623;
+  --color-danger: #ff5f56;
+  --color-shade: rgb(0 0 0 / 0.55);
+
+  --font-sans:
+    Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  :root {
+    --overlay: rgb(4 5 5 / 0.72);
+  }
+
+  /*
+   * Light palette. Text colours clear 4.5:1 on white — ink 16:1, dim 7.0:1,
+   * faint 5.7:1 (5.1:1 on the raised surface), accent-ink 5.4:1, warn 6.3:1,
+   * danger 6.5:1. `accent` is the vivid green, reserved for bars, dots and
+   * borders and never for text.
+   */
+  html.light {
+    --color-canvas: #fafafa;
+    --color-panel: #ffffff;
+    --color-raised: #f1f1f1;
+    --color-pill: #e6e6e6;
+    --color-line: #ebebeb;
+    --color-line-strong: #cfcfcf;
+    --color-ink: #1c1c1c;
+    --color-dim: #575757;
+    --color-faint: #666666;
+
+    --color-contrast: #171717;
+    --color-on-contrast: #fdfeff;
+
+    --color-accent: #00a06f;
+    --color-accent-ink: #007a50;
+    --color-accent-hover: #00663f;
+    --color-accent-deep: #00512f;
+    --color-on-accent: #ffffff;
+
+    --color-warn: #9a4a08;
+    --color-danger: #b91c1c;
+    --color-shade: rgb(15 23 42 / 0.13);
+    --overlay: rgb(30 41 59 / 0.42);
+  }
+
+  /* Drives native form controls, scrollbars and the dialog backdrop. Set in
+     CSS rather than script so it cannot drift from the root class. */
+  html.light {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv05" 1;
+  }
+
+  /* Tabular figures everywhere numbers line up in a column. */
+  code,
+  kbd,
+  pre,
+  samp,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-ink);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
+    color: var(--color-ink);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border: 2px solid var(--color-canvas);
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-faint);
+  }
+
+  dialog {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    max-width: none;
+    max-height: none;
+  }
+  dialog::backdrop {
+    background: var(--overlay);
+    backdrop-filter: blur(2px);
+  }
+}
+
+@utility label-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+/* Sidebar section headings: "PROJECT" / "BRANCH", Neon-style. */
+@utility label-section {
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+/* Neon-style table header: the UI face, sentence case, semibold. */
+@utility th-tendb {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: left;
+}
+
+/* CodeMirror sits on the panel surface rather than its own island. */
+.cm-editor {
+  height: 100%;
+}
+.cm-editor .cm-scroller {
+  overflow: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

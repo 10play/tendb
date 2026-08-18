@@ -1,0 +1,63 @@
+{
+  "name": "@10play/tendb",
+  "version": "0.1.0",
+  "description": "Neon-style Postgres branching: CLI + local console for DBLab (Database Lab Engine), reachable over AWS SSM",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "bin": {
+    "tendb": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/sdk.d.ts",
+      "import": "./dist/sdk.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/sdk.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm build:cli && pnpm build:console",
+    "build:cli": "tsup",
+    "build:console": "vite build console",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build && pnpm test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ssm": "^3.700.0",
+    "@aws-sdk/credential-providers": "^3.700.0",
+    "commander": "^13.1.0",
+    "pg": "^8.16.0",
+    "picocolors": "^1.1.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@codemirror/lang-sql": "^6.8.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@tanstack/react-query": "^5.60.0",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@uiw/react-codemirror": "^4.23.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
