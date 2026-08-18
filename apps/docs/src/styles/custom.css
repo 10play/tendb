@@ -71,7 +71,7 @@ figure.diagram figcaption {
   transition: border-color 0.25s ease;
 }
 .card:hover {
-  border-color: color-mix(in srgb, var(--sl-color-accent) 30%, var(--sl-color-gray-5));
+  border-color: color-mix(in srgb, var(--sl-color-accent) 15%, var(--sl-color-gray-5));
 }
 
 .card::before,
@@ -84,8 +84,10 @@ figure.diagram figcaption {
   background: conic-gradient(
     from var(--card-glow-angle, 0deg),
     transparent 0deg,
-    var(--sl-color-accent) 55deg,
-    transparent 110deg
+    var(--sl-color-accent) 45deg,
+    color-mix(in srgb, var(--sl-color-accent) 55%, white) 65deg,
+    var(--sl-color-accent) 85deg,
+    transparent 130deg
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -101,10 +103,12 @@ figure.diagram figcaption {
   pointer-events: none;
 }
 .card::before {
-  filter: blur(6px);
+  inset: -3px;
+  padding: 4px;
+  filter: blur(8px);
 }
 .card:hover::before {
-  opacity: 0.6;
+  opacity: 0.7;
   animation-play-state: running;
 }
 .card:hover::after {

@@ -8,7 +8,7 @@ Every `tendb` command resolves its configuration from four layers. Higher layers
 1. **Command-line flags** (`--region`, `--ssm-prefix`, …)
 2. **`TENDB_*` environment variables**
 3. **`tendb.json`** — an environment block selected with `--env` wins over the file's top level
-4. **Defaults** — `ssmPrefix: /tendb`, `snapshotTimeoutSeconds: 900`, `cloneTimeoutSeconds: 120`
+4. **Defaults** — `platform: aws`, `ssmPrefix: /tendb`, `snapshotTimeoutSeconds: 900`, `cloneTimeoutSeconds: 120`
 
 ## tendb.json
 
@@ -24,6 +24,8 @@ All fields are optional:
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
+| `platform` | `"aws" \| "gcp" \| "azure" \| "local"` | `aws` | Which [platform adapter](/concepts/platforms/) to use; `apiUrl` overrides it (direct mode) |
+| `paramPrefix` | string, must start with `/` | `/tendb` | The engine-contract namespace — the platform-neutral name for `ssmPrefix`; either works, `paramPrefix` wins within a layer |
 | `ssmPrefix` | string, must start with `/` | `/tendb` | Where the terraform module published its SSM parameters |
 | `region` | string | AWS SDK default chain | AWS region |
 | `profile` | string | — | AWS profile, loaded from the shared credentials file |
@@ -85,7 +87,7 @@ Selecting an environment that does not exist in the file exits 2 with `environme
 | `TENDB_STATE_DIR` | `stateDir` |
 | `TENDB_CONFIG` | `--config` (explicit path to `tendb.json`) |
 
-`TENDB_STATE_DIR` does double duty: besides mapping to the `stateDir` field, when set (the hosted service sets it), `tendb console` persists its alert feed and seen-findings map to `<dir>/alerts.json` so a restart doesn't replay Slack alerts.
+`TENDB_STATE_DIR` does double duty: on the local platform it locates `params.json`, and when set for `tendb console` (the hosted service sets it) the console persists its alert feed and seen-findings map to `<dir>/alerts.json` so a restart doesn't replay Slack alerts.
 
 :::caution
 Two things to watch:
@@ -153,7 +155,7 @@ Direct mode requires:
 What changes in direct mode:
 
 - **No port forwarding.** `psql`, `tunnel`, and `ui` exit 2. `migrate` and SDK `exec` dial the clone URI as-is, which assumes you can reach the engine host's network (local engine, or you're inside the VPC).
-- **`snapshots` and `schema` still need AWS** — they work through SSM parameters. Configure `region` (plus credentials), or those commands exit 2 with `snapshot control needs AWS access`.
+- **`snapshots` and `schema` still need a reachable param store** — they work through the engine-contract namespace. On `aws` that means `region` (plus credentials), or those commands exit 2 with `snapshot control needs AWS access`; on `gcp`/`azure`/`local` it means `gcpProject` / `azureVault` / `stateDir` respectively.
 
 ## Global flags
 
