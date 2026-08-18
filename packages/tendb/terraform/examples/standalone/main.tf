@@ -24,12 +24,12 @@ provider "aws" {
 }
 
 module "network" {
-  source = "../../modules/network"
+  source = "../../modules/aws/network"
   name   = var.name
 }
 
 module "engine" {
-  source = "../../modules/engine"
+  source = "../../modules/aws/engine"
 
   name                = var.name
   vpc_id              = module.network.vpc_id
@@ -144,7 +144,7 @@ resource "aws_iam_role_policy" "engine_console" {
 # OAuth client in Secrets Manager, a domain, and a packed CLI tarball.
 module "console" {
   count  = var.enable_console ? 1 : 0
-  source = "../../modules/console"
+  source = "../../modules/aws/console"
 
   name      = "${var.name}-console"
   vpc_id    = module.network.vpc_id

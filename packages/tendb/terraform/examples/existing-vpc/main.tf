@@ -16,7 +16,7 @@ provider "aws" {
 }
 
 module "engine" {
-  source = "../../modules/engine"
+  source = "../../modules/aws/engine"
 
   name                       = var.name
   vpc_id                     = var.vpc_id

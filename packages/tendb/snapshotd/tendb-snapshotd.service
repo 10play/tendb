@@ -1,0 +1,15 @@
+[Unit]
+Description=tendb snapshot/schema executor (drives zfs snapshots for the DBLab engine)
+After=network-online.target docker.service zfs.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/tendb-snapshotd
+Restart=always
+RestartSec=5
+# The daemon shells out to zfs/docker/psql; failures inside a tick are logged
+# and retried on the next poll, so only a crash of the loop itself restarts it.
+EnvironmentFile=-/etc/tendb/snapshotd.env
+
+[Install]
+WantedBy=multi-user.target
