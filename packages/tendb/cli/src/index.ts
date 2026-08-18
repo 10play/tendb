@@ -4,6 +4,9 @@ import pc from "picocolors";
 import { TenDBError } from "./errors.js";
 import { registerBranches } from "./commands/branches.js";
 import { registerCheckup } from "./commands/checkup.js";
+import { registerDown } from "./commands/down.js";
+import { registerInit } from "./commands/init.js";
+import { registerUp } from "./commands/up.js";
 import { registerCi } from "./commands/ci.js";
 import { registerConnectionString } from "./commands/connection-string.js";
 import { registerMigrate } from "./commands/migrate.js";
@@ -24,6 +27,9 @@ const program = new Command()
   .version(version)
   .enablePositionalOptions();
 
+registerInit(program);
+registerUp(program);
+registerDown(program);
 registerBranches(program);
 registerConnectionString(program);
 registerStatus(program);

@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+// Test shim for the terraform CLI. Appends every invocation as a JSON line to
+// TENDB_FAKE_TF_LOG; `output -json` prints the file at TENDB_FAKE_TF_OUTPUTS;
+// `state show` prints TENDB_FAKE_TF_STATE_SHOW. TENDB_FAKE_TF_FAIL="apply:1"
+// makes that subcommand exit with the given code. ESM (nearest package.json
+// is "type": "module").
+import { appendFileSync, readFileSync } from "node:fs";
+
+const args = process.argv.slice(2);
+if (process.env.TENDB_FAKE_TF_LOG) {
+  appendFileSync(
+    process.env.TENDB_FAKE_TF_LOG,
+    JSON.stringify({ args, cwd: process.cwd() }) + "\n",
+  );
+}
+
+const fail = process.env.TENDB_FAKE_TF_FAIL;
+if (fail) {
+  const [sub, code] = fail.split(":");
+  if (args[0] === sub) process.exit(Number(code ?? 1));
+}
+
+if (args[0] === "output" && args.includes("-json")) {
+  const path = process.env.TENDB_FAKE_TF_OUTPUTS;
+  process.stdout.write(path ? readFileSync(path, "utf8") : "{}\n");
+} else if (args[0] === "state" && args[1] === "show") {
+  process.stdout.write(process.env.TENDB_FAKE_TF_STATE_SHOW ?? "");
+} else if (["init", "apply", "destroy", "validate"].includes(args[0])) {
+  // no-op success
+} else {
+  process.stderr.write(`fake terraform: unhandled argv ${args.join(" ")}\n`);
+  process.exit(2);
+}

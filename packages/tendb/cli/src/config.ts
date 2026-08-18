@@ -33,14 +33,22 @@ const environmentSchema = z
 
 const configFileSchema = environmentSchema
   .extend({
+    /** Terraform deployment dir written by `tendb init`, relative to this file. */
+    deployDir: z.string().optional(),
     environments: z.record(z.string(), environmentSchema).optional(),
   })
   .strict();
+
+export type ConfigFile = z.infer<typeof configFileSchema>;
 
 export type ConfigOverrides = z.infer<typeof environmentSchema> & { env?: string };
 
 export interface ResolvedConfig {
   envName?: string;
+  /** Path of the tendb.json the config came from (absent when none was found). */
+  configPath?: string;
+  /** Terraform deployment dir from tendb.json, relative to configPath's dir. */
+  deployDir?: string;
   platform: PlatformName;
   /** The engine-contract namespace (canonical name; `paramPrefix` in config files). */
   ssmPrefix: string;
@@ -79,7 +87,12 @@ export function findConfigFile(startDir: string): string | undefined {
   }
 }
 
-function loadConfigFile(path: string): z.infer<typeof configFileSchema> {
+/** Load + validate a tendb.json (public for read-modify-write in `tendb up`). */
+export function readConfigFile(path: string): ConfigFile {
+  return loadConfigFile(path);
+}
+
+function loadConfigFile(path: string): ConfigFile {
   let raw: string;
   try {
     raw = readFileSync(path, "utf8");
@@ -160,7 +173,7 @@ export function resolveConfig(opts: {
     }
     envBlock = block;
   }
-  const { environments: _environments, ...fileTop } = file ?? {};
+  const { environments: _environments, deployDir, ...fileTop } = file ?? {};
 
   const merged = {
     ...DEFAULTS,
@@ -170,7 +183,7 @@ export function resolveConfig(opts: {
     ...canonicalPrefix(flags),
   };
   const { env: _env, paramPrefix: _paramPrefix, ...rest } = merged;
-  return { envName, ...rest };
+  return { envName, configPath: path || undefined, deployDir, ...rest };
 }
 
 /**

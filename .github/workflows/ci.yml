@@ -25,6 +25,33 @@ jobs:
       - run: pnpm build
       - run: pnpm test
 
+  # `tendb init` output must stay real terraform: scaffold every platform
+  # against this checkout's modules and validate it, and fail if the committed
+  # apps/example scaffold drifted from what the scaffolder emits.
+  scaffold:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/tendb/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.*"
+          terraform_wrapper: false
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm build:cli
+      - run: pnpm vitest run test/scaffold-validate.test.ts
+        env:
+          TENDB_SCAFFOLD_VALIDATE: "1"
+
   terraform:
     runs-on: ubuntu-latest
     strategy:

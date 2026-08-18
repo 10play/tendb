@@ -1,0 +1,19 @@
+{
+  "name": "tendb-example",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Example app on a local tendb platform — scaffolded by `tendb init`, driven end-to-end by `pnpm demo`",
+  "type": "module",
+  "scripts": {
+    "scaffold": "node scripts/scaffold.mjs",
+    "up": "tendb up --dir tendb",
+    "demo": "node scripts/demo.mjs",
+    "down": "tendb down --dir tendb --yes"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@10play/tendb": "workspace:*"
+  }
+}

@@ -9,6 +9,9 @@
     "typecheck": "pnpm -r typecheck",
     "docs:dev": "pnpm --filter tendb-docs dev",
     "docs:build": "pnpm --filter tendb-docs build",
-    "docs:preview": "pnpm --filter tendb-docs preview"
+    "docs:preview": "pnpm --filter tendb-docs preview",
+    "example:up": "pnpm --filter tendb-example up",
+    "example:demo": "pnpm --filter tendb-example demo",
+    "example:down": "pnpm --filter tendb-example down"
   }
 }

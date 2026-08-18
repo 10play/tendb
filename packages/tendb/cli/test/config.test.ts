@@ -30,6 +30,14 @@ describe("resolveConfig", () => {
     expect(cfg.database).toBe("app");
   });
 
+  it("surfaces deployDir and configPath without merging them into env layers", () => {
+    const dir = tempConfig({ platform: "local", deployDir: "infra/tendb" });
+    const cfg = resolveConfig({ cwd: dir, processEnv: noEnv });
+    expect(cfg.deployDir).toBe("infra/tendb");
+    expect(cfg.configPath).toBe(join(dir, "tendb.json"));
+    expect(cfg.platform).toBe("local");
+  });
+
   it("respects precedence: flags > env vars > file", () => {
     const dir = tempConfig({ ssmPrefix: "/from-file", region: "eu-west-1", database: "filedb" });
     const cfg = resolveConfig({

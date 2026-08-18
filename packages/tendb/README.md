@@ -43,9 +43,22 @@ npm-publishable CLI + console. Extraction to its own repo is a single
   derived on demand, stored nowhere, identical across CLI generations.
 - **Transport**: the CLI calls the DBLab REST API through an SSM port-forward
   (spawning `session-manager-plugin` directly — no aws CLI needed). Direct
-  `--api-url` mode skips AWS entirely for local/dev engines.
+  `--api-url` mode skips AWS entirely for local/dev engines. The plugin is
+  invoked with the same six-arg contract the aws CLI uses (StartSession
+  response JSON, region, `StartSession`, profile, request params JSON, SSM
+  endpoint) — de-facto, not documented; `cli/src/aws/session.ts` is the only
+  place to fix if a plugin release breaks it.
 
 ## Quickstart (fresh AWS account)
+
+The npm-native path — from any project, no repo clone:
+
+```bash
+npx @10play/tendb init     # scaffold terraform (git-pinned modules) + tendb.json
+tendb up                   # secret preflight + terraform apply + config wiring
+```
+
+Or by hand:
 
 ```bash
 # 1. The source URL lives in Secrets Manager (never in Terraform state):
@@ -68,6 +81,13 @@ node dist/index.js branches create demo
 Prereqs on the client: Node ≥ 20, `session-manager-plugin`
 (`brew install --cask session-manager-plugin`), AWS credentials with the
 module's `client_iam_policy_json` attached.
+
+> **Maintainer note:** the live AWS resources were provisioned under the old
+> `pgbranch` name (SSM prefix `/pgbranch`, secrets `pgbranch/console-oauth`
+> and `pgbranch-smoke/source-url`). The config and terraform in this repo now
+> use `tendb` — rename the AWS resources or re-apply terraform before the CLI
+> can reach the engine again. The repo-root `tendb.json` points at that live
+> engine (`/tendb`, eu-north-1).
 
 ## Sizes
 
