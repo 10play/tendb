@@ -25,6 +25,7 @@ locals {
   server_yml = templatefile("${path.module}/../../common/engine-init/templates/server-yml.tpl", {
     token                 = "$TOKEN"
     ui_enabled            = var.ui_enabled
+    ui_host               = "$PRIVATE_IP"
     ui_image              = var.ui_image
     clone_image           = local.clone_image
     shm_size              = local.shm_size

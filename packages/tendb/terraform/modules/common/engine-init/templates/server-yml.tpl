@@ -2,12 +2,15 @@ server:
   verificationToken: "${token}"
   port: 2345
 
-# Engine console. Binds to the host's loopback only — reachable exclusively
-# via platform tunnels (tendb ui) / published loopback ports locally.
+# Engine console, reached via platform tunnels (tendb ui). Bind host is
+# platform-shaped: loopback where the tunnel reaches it (local; AWS's frozen
+# template does the same), the private IP where it can't — IAP and Bastion
+# tunnels dial the VM's NIC, never its loopback. Firewalls scope 2346 to the
+# tunnel ranges only.
 embeddedUI:
   enabled: ${ui_enabled}
   dockerImage: "${ui_image}"
-  host: "127.0.0.1"
+  host: "${ui_host}"
   port: 2346
 
 global:

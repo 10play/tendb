@@ -52,6 +52,7 @@ locals {
     token                 = random_password.token.result
     ui_enabled            = var.ui_enabled
     ui_image              = var.ui_image
+    ui_host               = "127.0.0.1"
     clone_image           = local.clone_image
     shm_size              = module.presets.shm_size
     streaming_snapshots   = var.streaming_snapshots

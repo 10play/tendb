@@ -34,6 +34,7 @@ locals {
     db_pass               = "$DB_PASS"
     access_host           = "$PRIVATE_IP"
     ui_enabled            = var.ui_enabled
+    ui_host               = "$PRIVATE_IP"
     ui_image              = var.ui_image
     clone_image           = local.clone_image
     shm_size              = local.shm_size
