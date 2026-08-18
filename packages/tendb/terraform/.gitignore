@@ -3,3 +3,4 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
+*.auto.tfvars

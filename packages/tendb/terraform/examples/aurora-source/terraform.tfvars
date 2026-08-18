@@ -6,4 +6,4 @@ engine_ssm_prefix = "/tendb"
 # engine at cutover. 13.60.76.246 is the old auto-assigned engine IP —
 # drop it once replication is verified post-cutover.
 client_cidrs = ["13.60.76.246/32", "51.20.21.248/32"]
-admin_cidrs  = ["REDACTED/32"]
+# admin_cidrs (operator IPs) is supplied by an uncommitted *.auto.tfvars.
