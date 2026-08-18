@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+// Test shim for the az CLI: implements the exact subcommands the azure
+// adapter spawns. Secrets live in the JSON file at TENDB_FAKE_AZ_STORE;
+// `network bastion tunnel` TCP-proxies --port to TENDB_FAKE_TUNNEL_TARGET
+// (tcp://host:port). ESM (nearest package.json is "type": "module").
+import { readFileSync, writeFileSync } from "node:fs";
+import net from "node:net";
+
+const args = process.argv.slice(2);
+const storePath = process.env.TENDB_FAKE_AZ_STORE;
+const readStore = () => {
+  try {
+    return JSON.parse(readFileSync(storePath, "utf8"));
+  } catch {
+    return {};
+  }
+};
+const opt = (name) => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 ? args[i + 1] : undefined;
+};
+const readStdin = async () => {
+  const chunks = [];
+  for await (const c of process.stdin) chunks.push(c);
+  return Buffer.concat(chunks).toString();
+};
+
+if (args[0] === "keyvault" && args[1] === "secret" && args[2] === "show") {
+  const name = opt("name");
+  const store = readStore();
+  if (!(name in store)) {
+    process.stderr.write(`ERROR: (SecretNotFound) A secret with (name/id) ${name} was not found in this key vault.\n`);
+    process.exit(1);
+  }
+  process.stdout.write(`${store[name]}\n`); // --output tsv appends a newline
+} else if (args[0] === "keyvault" && args[1] === "secret" && args[2] === "set") {
+  const name = opt("name");
+  const file = opt("file");
+  const value = file === "/dev/stdin" ? await readStdin() : readFileSync(file, "utf8");
+  const store = readStore();
+  store[name] = value;
+  writeFileSync(storePath, JSON.stringify(store));
+} else if (args[0] === "network" && args[1] === "bastion" && args[2] === "tunnel") {
+  const localPort = Number(opt("port"));
+  const target = new URL(process.env.TENDB_FAKE_TUNNEL_TARGET);
+  const server = net.createServer((client) => {
+    const upstream = net.connect({ host: target.hostname, port: Number(target.port) });
+    client.pipe(upstream).pipe(client);
+    client.on("error", () => upstream.destroy());
+    upstream.on("error", () => client.destroy());
+  });
+  server.listen(localPort, "127.0.0.1");
+  process.on("SIGTERM", () => process.exit(0));
+} else {
+  process.stderr.write(`fake az: unhandled argv ${args.join(" ")}\n`);
+  process.exit(2);
+}

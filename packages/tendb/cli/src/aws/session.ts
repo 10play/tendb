@@ -43,8 +43,12 @@ export async function startPortForward(
     });
   });
 
+  // On spawn failure (ENOENT) the child never existed and `exit` never fires
+  // — close() must not wait for it.
+  let spawnFailed = false;
   const spawnError = new Promise<never>((_, reject) => {
     child.once("error", (err: NodeJS.ErrnoException) => {
+      spawnFailed = true;
       reject(
         err.code === "ENOENT"
           ? new MissingDependencyError("session-manager-plugin not found on PATH", PLUGIN_HINT)
@@ -54,7 +58,7 @@ export async function startPortForward(
   });
 
   const close = async () => {
-    if (!exited) {
+    if (!exited && !spawnFailed) {
       child.kill("SIGTERM");
       await onExit;
     }

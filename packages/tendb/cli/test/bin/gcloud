@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+// Test shim for the gcloud CLI: implements the exact subcommands the gcp
+// adapter spawns. Secrets live in the JSON file at TENDB_FAKE_GCLOUD_STORE;
+// `compute start-iap-tunnel` TCP-proxies the requested local port to
+// TENDB_FAKE_TUNNEL_TARGET (tcp://host:port). ESM (nearest package.json is
+// "type": "module").
+import { readFileSync, writeFileSync } from "node:fs";
+import net from "node:net";
+
+const args = process.argv.slice(2);
+const storePath = process.env.TENDB_FAKE_GCLOUD_STORE;
+const readStore = () => {
+  try {
+    return JSON.parse(readFileSync(storePath, "utf8"));
+  } catch {
+    return {};
+  }
+};
+const readStdin = async () => {
+  const chunks = [];
+  for await (const c of process.stdin) chunks.push(c);
+  return Buffer.concat(chunks).toString();
+};
+const flag = (name) => {
+  const hit = args.find((a) => a.startsWith(`--${name}=`));
+  return hit ? hit.slice(name.length + 3) : undefined;
+};
+
+if (args[0] === "secrets" && args[1] === "versions" && args[2] === "access") {
+  const secret = flag("secret");
+  const store = readStore();
+  if (!(secret in store)) {
+    process.stderr.write(`ERROR: NOT_FOUND: Secret [${secret}] not found or has no versions.\n`);
+    process.exit(1);
+  }
+  process.stdout.write(store[secret]);
+} else if (args[0] === "secrets" && args[1] === "versions" && args[2] === "add") {
+  const secret = args[3];
+  const store = readStore();
+  if (!(secret in store)) {
+    process.stderr.write(`ERROR: NOT_FOUND: Secret [${secret}] not found.\n`);
+    process.exit(1);
+  }
+  store[secret] = await readStdin();
+  writeFileSync(storePath, JSON.stringify(store));
+} else if (args[0] === "secrets" && args[1] === "create") {
+  const secret = args[2];
+  const store = readStore();
+  store[secret] = await readStdin();
+  writeFileSync(storePath, JSON.stringify(store));
+} else if (args[0] === "compute" && args[1] === "start-iap-tunnel") {
+  const localSpec = flag("local-host-port");
+  const localPort = Number(localSpec.split(":")[1]);
+  const target = new URL(process.env.TENDB_FAKE_TUNNEL_TARGET);
+  const server = net.createServer((client) => {
+    const upstream = net.connect({ host: target.hostname, port: Number(target.port) });
+    client.pipe(upstream).pipe(client);
+    client.on("error", () => upstream.destroy());
+    upstream.on("error", () => client.destroy());
+  });
+  server.listen(localPort, "127.0.0.1");
+  process.on("SIGTERM", () => process.exit(0));
+} else {
+  process.stderr.write(`fake gcloud: unhandled argv ${args.join(" ")}\n`);
+  process.exit(2);
+}

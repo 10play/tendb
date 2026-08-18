@@ -30,8 +30,12 @@ export async function spawnTunnelProcess(opts: {
     });
   });
 
+  // On spawn failure (ENOENT) the child never existed and `exit` never fires
+  // — close() must not wait for it.
+  let spawnFailed = false;
   const spawnError = new Promise<never>((_, reject) => {
     child.once("error", (err: NodeJS.ErrnoException) => {
+      spawnFailed = true;
       reject(
         err.code === "ENOENT"
           ? new MissingDependencyError(`${opts.command} not found on PATH`, opts.missingHint)
@@ -41,7 +45,7 @@ export async function spawnTunnelProcess(opts: {
   });
 
   const close = async () => {
-    if (!exited) {
+    if (!exited && !spawnFailed) {
       child.kill("SIGTERM");
       await onExit;
     }
