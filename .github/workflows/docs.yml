@@ -1,0 +1,46 @@
+name: docs
+
+# Builds the Astro site and pushes it to gh-pages whenever docs change on
+# main — the "pages build and deployment" workflow then serves it. Keeps
+# 10play.github.io/tendb from going stale between manual deploys.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/docs/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # pushes the built site to the gh-pages branch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:build
+      - name: Push to gh-pages
+        run: |
+          touch apps/docs/dist/.nojekyll
+          cd apps/docs/dist
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "docs: deploy ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
