@@ -88,11 +88,13 @@ The platform shim contract (sourced by init-core and snapshotd):
 
 ```bash
 pf_get_secret <id>          # secret-store read → stdout (source URL)
-pf_get_param <name>         # param read (contract name) → stdout, empty if absent
-pf_put_param <name> <value> # param write (contract name)
+pf_get_param <leaf>         # param read → stdout, non-zero/empty if absent
+pf_put_param <leaf> <value> # param write
 pf_self_ip                  # primary private IP → stdout
 pf_data_device              # block device path for the ZFS pool → stdout
 ```
 
-`pf_get_param`/`pf_put_param` take *contract* names (with slashes) and apply
-the platform mapping internally.
+`pf_get_param`/`pf_put_param` take contract *leaves* relative to the prefix
+(`verification-token`, `snapshots/request`); the shim joins them with
+`TENDB_PARAM_PREFIX` and applies the platform name mapping internally. The
+CLI-side equivalent (`mapParamName`) takes the full contract name.

@@ -1,0 +1,23 @@
+# Copy to terraform.tfvars and fill in. No real values belong in this file.
+
+# subscription_id      = "00000000-0000-0000-0000-000000000000" # or ARM_SUBSCRIPTION_ID
+location               = "northeurope"
+name                   = "tendb"
+size                   = "small"
+postgres_major_version = 18
+admin_ssh_public_key   = "ssh-ed25519 AAAA... you@example.com"
+
+# Created out of band in the engine vault AFTER the targeted first apply —
+# see main.tf.
+source_secret_name = "tendb-source-url"
+# source_secret_json_key = "DATABASE_URL" # when the secret is JSON
+
+# network_mode = "nat" # if the subscription no longer grants default outbound access
+
+# --- optional hosted console ----------------------------------------------
+# enable_console       = true
+# console_domain       = "dbconsole.example.com"
+# acme_email           = "ops@example.com"
+# oauth_secret_name    = "tendb-oauth-client"
+# npm_package_spec     = "@10play/tendb@0.1.0" # XOR package_tarball_path
+# package_tarball_path = "../../../cli/tendb-0.1.0.tgz"

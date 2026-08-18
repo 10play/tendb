@@ -1,0 +1,21 @@
+project = "my-gcp-project"
+region  = "us-central1"
+zone    = "us-central1-a"
+
+# name         = "tendb"
+# network_mode = "public" # or "nat"
+size = "small"
+
+postgres_major_version = 16
+source_secret_id       = "tendb-source-url"
+# source_secret_json_key = "DATABASE_URL" # when the secret payload is JSON
+
+# --- optional hosted console ----------------------------------------------
+# enable_console                = true
+# console_domain                = "dbconsole.example.com"
+# console_acme_email            = "ops@example.com"
+# console_oauth_secret_id       = "tendb-console-oauth"
+# console_managed_zone          = "example-com" # or create the A record yourself
+# console_allowed_email_domains = ["example.com"]
+# console_npm_package_spec      = "@10play/tendb@latest"
+# console_package_tarball_path  = "../../../cli/tendb-0.1.0.tgz" # XOR npm spec

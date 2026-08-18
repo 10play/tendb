@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  cli:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/tendb/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
+
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        root:
+          - examples/standalone
+          - examples/existing-vpc
+          - examples/aurora-source
+          - examples/local
+          - examples/gcp-standalone
+          - examples/azure-standalone
+    defaults:
+      run:
+        working-directory: packages/tendb/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.*"
+      # The AWS engine's user_data template is frozen: any byte change
+      # replaces the live instance and destroys the ZFS pool.
+      - run: bash scripts/check-frozen-userdata.sh
+      - run: terraform init -backend=false -input=false
+        working-directory: packages/tendb/terraform/${{ matrix.root }}
+      - run: terraform validate
+        working-directory: packages/tendb/terraform/${{ matrix.root }}
+      - run: terraform fmt -check -recursive modules ${{ matrix.root }}
+        continue-on-error: true

@@ -107,16 +107,52 @@ short-lived, or refresh less often than nightly.
 - **A data refresh is skipped while clones exist** (non-destructive). Delete
   branches before expecting fresh data at the next cron.
 
+## Platforms
+
+The same engine contract runs on four platforms
+([terraform/docs/ENGINE-CONTRACT.md](terraform/docs/ENGINE-CONTRACT.md));
+the CLI selects one via `platform` in tendb.json / `TENDB_PLATFORM` /
+`--platform` (default `aws`):
+
+| platform | host | params/secrets | tunnel | status |
+|---|---|---|---|---|
+| `aws` | EC2 + gp3/ZFS | SSM Parameter Store + Secrets Manager | SSM Session Manager | live |
+| `gcp` | Compute Engine + pd-ssd/ZFS | Secret Manager | IAP TCP forwarding (`gcloud`) | validate-only |
+| `azure` | Linux VM + managed disk/ZFS | Key Vault | Bastion Standard tunnel (`az`) | validate-only |
+| `local` | Docker containers on a ZFS VM | `~/.tendb/local/params.json` | none (loopback) | verified e2e |
+
+Local quickstart (macOS needs a colima VM — Docker Desktop's kernel has no ZFS):
+
+```bash
+bash terraform/modules/local/scripts/host-setup.sh   # colima + zpool preflight
+export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
+terraform -chdir=terraform/examples/local init && terraform -chdir=terraform/examples/local apply
+export TENDB_PLATFORM=local TENDB_STATE_DIR=$HOME/.tendb/local
+tendb status && tendb branches create my-feature && tendb psql my-feature
+```
+
+GCP/Azure ship syntax/plan-validated, not yet applied anywhere: expect
+first-apply issues. Caveats: GCP needs the IAP firewall range
+(35.235.240.0/20) open to the tunneled ports and clients need
+`roles/iap.tunnelResourceAccessor`; Azure requires a Standard-SKU Bastion
+with native-client tunneling (~$140/mo idle) and an `AzureBastionSubnet`
+/26; on both, config needs `gcpProject` / `azureVault` respectively.
+
 ## Repo layout
 
 ```
 tendb/
 ├── terraform/
-│   ├── modules/engine/      # the DBLab host (see its README for all inputs)
-│   ├── modules/network/     # optional minimal VPC (public | private-nat)
-│   ├── modules/console/     # hosted console behind Google login (optional)
-│   └── examples/            # standalone (greenfield) + existing-vpc
-└── cli/                     # @10play/tendb — CLI + console (see its README)
+│   ├── docs/ENGINE-CONTRACT.md  # what every platform must publish
+│   ├── modules/common/          # shared size presets + init templates
+│   ├── modules/aws/             # engine / network / console (live)
+│   ├── modules/gcp/             # engine / network / console (validate-only)
+│   ├── modules/azure/           # engine / network / console (validate-only)
+│   ├── modules/local/           # engine / console containers + VM preflight
+│   └── examples/                # standalone, existing-vpc, aurora-source,
+│                                #   local, gcp-standalone, azure-standalone
+├── snapshotd/                   # on-host snapshot/schema executor + shims
+└── cli/                         # @10play/tendb — CLI + console (see its README)
 ```
 
 ## Hosted console (optional)

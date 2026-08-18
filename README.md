@@ -1,16 +1,23 @@
 # tendb
 
-Neon-style Postgres branching on your own AWS account, powered by
-[DBLab Engine](https://postgres.ai). This is a pnpm monorepo; the product
-lives in [`packages/tendb/`](packages/tendb/README.md):
+Neon-style Postgres branching on your own infrastructure — AWS, GCP, Azure,
+or your laptop's Docker — powered by [DBLab Engine](https://postgres.ai).
+This is a pnpm monorepo; the product lives in
+[`packages/tendb/`](packages/tendb/README.md):
 
-- `packages/tendb/terraform/` — engine, network and hosted-console modules,
-  plus the `examples/standalone` deployment used for the live environment.
-- `packages/tendb/cli/` — the `@10play/tendb` CLI and the bundled web console.
+- `packages/tendb/terraform/` — per-platform engine/network/console modules
+  (`modules/aws|gcp|azure|local`) behind one
+  [engine contract](packages/tendb/terraform/docs/ENGINE-CONTRACT.md), plus
+  the `examples/standalone` deployment used for the live AWS environment.
+- `packages/tendb/cli/` — the `@10play/tendb` CLI and the bundled web console
+  (`--platform aws|gcp|azure|local`).
+- `packages/tendb/snapshotd/` — the on-host snapshot/schema executor.
 - `apps/docs/` — the documentation site (Astro Starlight): quickstart,
   architecture, CLI & Terraform reference, CI previews, Neon parity.
 
 ## Documentation
+
+**Live: https://10play.github.io/tendb/** (served from the `gh-pages` branch)
 
 ```bash
 pnpm install
