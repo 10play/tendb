@@ -1,0 +1,115 @@
+---
+title: Local quickstart
+description: Run the whole tendb stack — engine, snapshots, branches — as Docker containers on your own machine.
+---
+
+import { Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+The [local platform](/concepts/platforms/) runs the exact same DBLab engine
+the cloud platforms run, as containers on your machine: no cloud account, no
+tunnels, branches on `127.0.0.1`. It is the fastest way to try tendb and a
+real dev target — same CLI, same console, same snapshot semantics.
+
+## Prerequisites
+
+- **A ZFS-capable Docker host.** This is the one honest requirement, and
+  Docker Desktop on macOS cannot provide it — its LinuxKit kernel has no ZFS
+  module. The preflight script solves it:
+  - **macOS**: creates a [colima](https://github.com/abiosoft/colima) VM
+    (vz + Rosetta — the DBLab images are amd64 and run emulated), installs
+    `zfsutils-linux` inside it, and builds a file-backed zpool. Homebrew
+    required; colima is installed for you if missing.
+  - **Linux**: same steps natively (needs `sudo`; ZFS must be available for
+    your kernel, which stock Ubuntu provides).
+- **Terraform >= 1.11** and **Node.js >= 20** for the CLI.
+- A **source Postgres URL** — or nothing: the example provisions a seeded
+  demo source container (500 users, 5000 orders) when you don't bring one.
+
+## Zero to first branch
+
+<Steps>
+
+1. **Run the preflight.**
+
+   ```sh
+   git clone https://github.com/10play/tendb.git && cd tendb
+   bash packages/tendb/terraform/modules/local/scripts/host-setup.sh
+   ```
+
+   Idempotent — run it again any time (it also re-imports the zpool after a
+   VM restart). On macOS it ends by printing the Docker socket to use:
+
+   ```sh
+   export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
+   ```
+
+2. **Apply the local stack.**
+
+   ```sh
+   terraform -chdir=packages/tendb/terraform/examples/local init
+   terraform -chdir=packages/tendb/terraform/examples/local apply
+   ```
+
+   This starts the engine container (API on `127.0.0.1:2345`), the
+   [`tendb-snapshotd`](/reference/snapshotd/) container, the demo source
+   (unless you set `source_url`), and writes the discovery file the CLI
+   reads: `~/.tendb/local/params.json`.
+
+   :::note
+   The verification token lands in local Terraform state — a documented
+   local-only concession (the cloud platforms use write-only secret
+   arguments). It is your dev machine; keep the example dir private.
+   :::
+
+3. **Point the CLI at it.**
+
+   ```sh
+   export TENDB_PLATFORM=local TENDB_STATE_DIR=$HOME/.tendb/local
+   tendb status
+   ```
+
+   Or put `{ "platform": "local", "stateDir": "~/.tendb/local" }`-style
+   values in a [`tendb.json`](/reference/configuration/) (the path must be
+   absolute there). `status` shows `transport local` and the sync progress —
+   the demo source syncs in about a minute.
+
+4. **Branch, connect, snapshot.**
+
+   ```sh
+   tendb branches create my-feature
+   tendb psql my-feature -- -c 'select count(*) from users'
+   tendb snapshots create        # ~10 s round-trip through snapshotd
+   ```
+
+   Clone ports (`6000`+) are published on loopback and forwarded to your
+   mac by colima, so the printed URI dials as-is. The DBLab embedded UI is
+   on `http://127.0.0.1:2346` (`tendb ui` opens it), and
+   `tendb console` serves the full dashboard.
+
+</Steps>
+
+## Differences from the cloud platforms
+
+- **No tunnels** — everything is already on `127.0.0.1`; `tendb tunnel -p`
+  still works via a small TCP relay.
+- **amd64 under Rosetta** on Apple Silicon: noticeably slower than native,
+  entirely fine for dev-sized databases.
+- **Sizing is the VM's problem**: the `size` variable still sets port-pool
+  width and per-clone Postgres settings, but CPU/RAM/disk come from the
+  colima VM (`TENDB_VM_CPUS`, `TENDB_VM_MEMORY`, `TENDB_POOL_SIZE` env vars
+  for the preflight).
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Platforms"
+    description="How local, AWS, GCP, and Azure share one engine contract."
+    href="/concepts/platforms/"
+  />
+  <LinkCard
+    title="AWS quickstart"
+    description="The production path: one terraform apply into your own account."
+    href="/getting-started/quickstart/"
+  />
+</CardGrid>

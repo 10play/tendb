@@ -21,12 +21,14 @@ export default defineConfig({
           items: [
             { label: 'What is tendb?', slug: 'getting-started/introduction' },
             { label: 'Quickstart', slug: 'getting-started/quickstart' },
+            { label: 'Local quickstart', slug: 'getting-started/local-quickstart' },
           ],
         },
         {
           label: 'How it works',
           items: [
             { label: 'Architecture', slug: 'concepts/architecture' },
+            { label: 'Platforms', slug: 'concepts/platforms' },
             { label: 'Security model', slug: 'concepts/security' },
             { label: 'Data refresh lifecycle', slug: 'concepts/data-refresh' },
           ],
@@ -37,6 +39,8 @@ export default defineConfig({
             { label: 'CI preview environments', slug: 'guides/ci-previews' },
             { label: 'The web console', slug: 'guides/console' },
             { label: 'Operations & troubleshooting', slug: 'guides/operations' },
+            { label: 'Platform: GCP', slug: 'guides/gcp' },
+            { label: 'Platform: Azure', slug: 'guides/azure' },
           ],
         },
         {
@@ -44,6 +48,8 @@ export default defineConfig({
           items: [
             { label: 'CLI commands', slug: 'reference/cli' },
             { label: 'Configuration', slug: 'reference/configuration' },
+            { label: 'The engine contract', slug: 'reference/engine-contract' },
+            { label: 'tendb-snapshotd', slug: 'reference/snapshotd' },
             { label: 'Terraform: engine module', slug: 'reference/terraform-engine' },
             { label: 'Terraform: network & console', slug: 'reference/terraform-network' },
           ],

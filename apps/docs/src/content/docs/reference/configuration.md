@@ -8,7 +8,7 @@ Every `tendb` command resolves its configuration from four layers. Higher layers
 1. **Command-line flags** (`--region`, `--ssm-prefix`, …)
 2. **`TENDB_*` environment variables**
 3. **`tendb.json`** — an environment block selected with `--env` wins over the file's top level
-4. **Defaults** — `ssmPrefix: /tendb`, `snapshotTimeoutSeconds: 900`, `cloneTimeoutSeconds: 120`
+4. **Defaults** — `platform: aws`, `ssmPrefix: /tendb`, `snapshotTimeoutSeconds: 900`, `cloneTimeoutSeconds: 120`
 
 ## tendb.json
 
@@ -24,6 +24,8 @@ All fields are optional:
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
+| `platform` | `"aws" \| "gcp" \| "azure" \| "local"` | `aws` | Which [platform adapter](/concepts/platforms/) to use; `apiUrl` overrides it (direct mode) |
+| `paramPrefix` | string, must start with `/` | `/tendb` | The engine-contract namespace — the platform-neutral name for `ssmPrefix`; either works, `paramPrefix` wins within a layer |
 | `ssmPrefix` | string, must start with `/` | `/tendb` | Where the terraform module published its SSM parameters |
 | `region` | string | AWS SDK default chain | AWS region |
 | `profile` | string | — | AWS profile, loaded from the shared credentials file |
@@ -35,6 +37,9 @@ All fields are optional:
 | `cloneTimeoutSeconds` | positive integer | `120` | How long to wait for a clone to reach `OK` |
 | `replicationPublisherUrl` | string | SSM `<prefix>/replication/publisher-url` | Upstream replication endpoint, for the sync view and `checkup` |
 | `replicationSubscriberUrl` | string | SSM `<prefix>/replication/subscriber-url` | Sync-target endpoint, same consumers |
+| `gcpProject` | string | gcloud default project | **gcp only** — the Secret Manager project |
+| `azureVault` | string | — | **azure only** — the Key Vault name (required on azure) |
+| `stateDir` | string | `~/.tendb/local` | **local only** — directory holding `params.json` |
 | `environments` | object of the above | — | Named environment blocks (top level only); select with `--env` / `TENDB_ENV` |
 
 ### Environments
@@ -62,6 +67,8 @@ Selecting an environment that does not exist in the file exits 2 with `environme
 | Variable | Maps to |
 |---|---|
 | `TENDB_ENV` | `--env` |
+| `TENDB_PLATFORM` | `platform` |
+| `TENDB_PARAM_PREFIX` | `paramPrefix` |
 | `TENDB_SSM_PREFIX` | `ssmPrefix` |
 | `TENDB_REGION` | `region` — falls back to `AWS_REGION` when unset |
 | `TENDB_PROFILE` | `profile` |
@@ -73,9 +80,12 @@ Selecting an environment that does not exist in the file exits 2 with `environme
 | `TENDB_CLONE_TIMEOUT` | `cloneTimeoutSeconds` |
 | `TENDB_REPLICATION_PUBLISHER_URL` | `replicationPublisherUrl` |
 | `TENDB_REPLICATION_SUBSCRIBER_URL` | `replicationSubscriberUrl` |
+| `TENDB_GCP_PROJECT` | `gcpProject` |
+| `TENDB_AZURE_VAULT` | `azureVault` |
+| `TENDB_STATE_DIR` | `stateDir` |
 | `TENDB_CONFIG` | `--config` (explicit path to `tendb.json`) |
 
-`TENDB_STATE_DIR` is not a config field: when set (the hosted service sets it), `tendb console` persists its alert feed and seen-findings map to `<dir>/alerts.json` so a restart doesn't replay Slack alerts.
+`TENDB_STATE_DIR` does double duty: on the local platform it locates `params.json`, and when set for `tendb console` (the hosted service sets it) the console persists its alert feed and seen-findings map to `<dir>/alerts.json` so a restart doesn't replay Slack alerts.
 
 :::caution
 Two things to watch:
@@ -143,11 +153,11 @@ Direct mode requires:
 What changes in direct mode:
 
 - **No port forwarding.** `psql`, `tunnel`, and `ui` exit 2. `migrate` and SDK `exec` dial the clone URI as-is, which assumes you can reach the engine host's network (local engine, or you're inside the VPC).
-- **`snapshots` and `schema` still need AWS** — they work through SSM parameters. Configure `region` (plus credentials), or those commands exit 2 with `snapshot control needs AWS access`.
+- **`snapshots` and `schema` still need a reachable param store** — they work through the engine-contract namespace. On `aws` that means `region` (plus credentials), or those commands exit 2 with `snapshot control needs AWS access`; on `gcp`/`azure`/`local` it means `gcpProject` / `azureVault` / `stateDir` respectively.
 
 ## Global flags
 
-Every leaf command accepts the shared flag set (`--env`, `--region`, `--profile`, `--ssm-prefix`, `--instance-id`, `--api-url`, `--config`, `-o/--output`, `--quiet`). Flags sit at the top of the precedence order, above environment variables and `tendb.json`. Write them **after** the subcommand — see the [CLI reference](/reference/cli/#global-flags) for the full table and the reasoning.
+Every leaf command accepts the shared flag set (`--env`, `--platform`, `--region`, `--profile`, `--ssm-prefix`, `--instance-id`, `--api-url`, `--config`, `-o/--output`, `--quiet`). Flags sit at the top of the precedence order, above environment variables and `tendb.json`. Write them **after** the subcommand — see the [CLI reference](/reference/cli/#global-flags) for the full table and the reasoning.
 
 ## Programmatic use
 

@@ -10,7 +10,7 @@ npm install -g @10play/tendb
 tendb --version
 ```
 
-Every command talks to the DBLab Engine API on your engine host — by default through an AWS SSM port-forwarding session (no open ports, no SSH keys), or directly with [`--api-url`](/reference/configuration/#direct-mode---api-url). Configuration comes from flags, `TENDB_*` environment variables, and `tendb.json` — see the [configuration reference](/reference/configuration/).
+Every command talks to the DBLab Engine API on your engine host — through the [platform's](/concepts/platforms/) native tunnel (AWS SSM by default; IAP on gcp, Bastion on azure, plain loopback locally — no open ports, no SSH keys), or directly with [`--api-url`](/reference/configuration/#direct-mode---api-url). Configuration comes from flags, `TENDB_*` environment variables, and `tendb.json` — see the [configuration reference](/reference/configuration/).
 
 ## Global conventions
 
@@ -21,6 +21,7 @@ These flags work on every leaf command:
 | Flag | Default | Meaning |
 |---|---|---|
 | `--env <name>` | — | Select an environment block from `tendb.json` |
+| `--platform <name>` | `aws` | Platform adapter: `aws`, `gcp`, `azure`, or `local` |
 | `--region <region>` | — | AWS region |
 | `--profile <profile>` | — | AWS profile (loaded via the shared credentials file) |
 | `--ssm-prefix <prefix>` | `/tendb` | SSM parameter prefix |
@@ -151,7 +152,7 @@ tendb psql pr-42
 tendb psql pr-42 -- -c 'select count(*) from users'
 ```
 
-The CLI exits with psql's exit code. If `psql` is missing from `PATH`, it exits 5 with an install hint (`brew install libpq` or `postgresql`). Not available in [direct `--api-url` mode](/reference/configuration/#direct-mode---api-url) (exits 2 — port forwarding needs SSM).
+The CLI exits with psql's exit code. If `psql` is missing from `PATH`, it exits 5 with an install hint (`brew install libpq` or `postgresql`). Not available in [direct `--api-url` mode](/reference/configuration/#direct-mode---api-url) (exits 2 — port forwarding needs a platform session).
 
 ## tendb connection-string
 
@@ -213,7 +214,7 @@ Checks engine health, fetches `/status`, and reads clone capacity from the SSM p
 |---|---|
 | `health` | `ok` or `UNREACHABLE` |
 | `engine` | DBLab Engine version |
-| `transport` | `ssm (i-…)` or `direct` |
+| `transport` | `ssm (i-…)`, `iap`, `bastion`, `local`, or `direct` |
 | `sync mode` / `sync status` | Retrieval mode and state |
 | `last refresh` / `next refresh` | Refresh timestamps |
 | `data state at` | Data-state timestamp of the first pool |
@@ -245,7 +246,7 @@ tendb migrate --scratch -- npx prisma migrate deploy      # rehearse + clean up
 tendb migrate --scratch --keep --fresh -- ./migrate.sh    # rehearse on fresh data, keep the evidence
 ```
 
-Under SSM transport the branch URL is tunneled per call; in direct mode the clone URI is dialed as-is (assumes in-VPC reachability).
+On platform sessions the branch URL is tunneled per call; in direct mode the clone URI is dialed as-is (assumes in-VPC reachability).
 
 Output: table mode prints one stderr line — `ok on <branch> in <ms>ms` or `failed (exit N) on <branch> in <ms>ms`, plus `— scratch branch removed` when applicable. JSON mode prints `{ ok, exitCode, durationMs, branch, kept }` on stdout.
 
@@ -318,7 +319,7 @@ Output: `health  ok — no findings`, or a `severity code message` table. JSON m
 Pool snapshots for streaming deployments. The engine host runs `tendb-snapshotd`, which CHECKPOINTs the sync target and takes an O(1) ZFS snapshot — seconds at any database size. The CLI drives it through two SSM parameters: `<prefix>/snapshots/config` (the schedule) and `<prefix>/snapshots/request` (a nonce meaning "snapshot now"). See [data refresh](/concepts/data-refresh/).
 
 :::note
-The `snapshots` and `schema` commands read and write SSM parameters, so they need AWS access even in direct `--api-url` mode — configure `region` (and credentials) there, or you get `snapshot control needs AWS access` (exit 2).
+The `snapshots` and `schema` commands read and write the [engine-contract](/reference/engine-contract/) params, so they need a reachable param store even in direct `--api-url` mode — on `aws`, configure `region` (and credentials) or you get `snapshot control needs AWS access` (exit 2); the other platforms use `gcpProject` / `azureVault` / `stateDir`.
 :::
 
 ### tendb snapshots list
@@ -356,7 +357,7 @@ tendb snapshots config --interval-minutes 60 --retain 24
 
 ## tendb schema
 
-DDL never travels over logical replication, so the sync target's schema drifts silently when you migrate the source. These commands surface and reconcile that drift, driven by SSM parameters `<prefix>/schema/config` and `<prefix>/schema/sync-request`. The same AWS-access requirement as [`snapshots`](#tendb-snapshots) applies.
+DDL never travels over logical replication, so the sync target's schema drifts silently when you migrate the source. These commands surface and reconcile that drift, driven by the contract params `<prefix>/schema/config` and `<prefix>/schema/sync-request`. The same param-store requirement as [`snapshots`](#tendb-snapshots) applies.
 
 ### tendb schema diff
 
@@ -415,7 +416,7 @@ Prints `tendb console: http://localhost:<port>` on stderr and blocks until Ctrl-
 tendb ui [--no-open]
 ```
 
-Opens the DBLab Engine's own embedded UI through two fixed-port tunnels: UI on `localhost:2346` and API on `localhost:2345` (the UI's browser code calls `localhost:2345`, so local ports must match the remote ones exactly). Blocks until Ctrl-C. SSM transport only — in direct mode it exits 2, because the embedded UI is bound to the host's loopback.
+Opens the DBLab Engine's own embedded UI through two fixed-port tunnels: UI on `localhost:2346` and API on `localhost:2345` (the UI's browser code calls `localhost:2345`, so local ports must match the remote ones exactly). Blocks until Ctrl-C. Platform sessions only — in direct mode it exits 2, because the embedded UI is only reachable through the platform tunnel.
 
 | Flag | Meaning |
 |---|---|
