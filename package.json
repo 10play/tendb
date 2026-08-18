@@ -1,6 +1,7 @@
 {
   "name": "tendb",
   "private": true,
+  "license": "MIT",
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "pnpm -r build",
