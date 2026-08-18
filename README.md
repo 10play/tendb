@@ -1,7 +1,8 @@
 # tendb
 
-Neon-style Postgres branching on your own AWS account. This is a pnpm
-monorepo; the product lives in [`packages/tendb/`](packages/tendb/README.md):
+Neon-style Postgres branching on your own AWS account, powered by
+[DBLab Engine](https://postgres.ai). This is a pnpm monorepo; the product
+lives in [`packages/tendb/`](packages/tendb/README.md):
 
 - `packages/tendb/terraform/` — engine, network and hosted-console modules,
   plus the `examples/standalone` deployment used for the live environment.
@@ -24,3 +25,11 @@ sizing and the CI contract.
 > `pgbranch-smoke/source-url`, bucket `pgbranch-pkg-409154939891`). The config
 > and terraform in this repo now use `tendb` — rename the AWS resources or
 > re-apply terraform before the CLI can reach the engine again.
+
+## Acknowledgements
+
+tendb is built on [DBLab Engine](https://github.com/postgres-ai/database-lab-engine)
+(Database Lab Engine) by [Postgres.ai](https://postgres.ai) — the open-source
+engine that does the heavy lifting: ZFS thin cloning and copy-on-write branch
+databases. tendb adds the AWS packaging around it (Terraform provisioning, SSM
+transport, the CLI, the web console, and the CI contract).
