@@ -9,6 +9,8 @@ The module is private-first by design: no SSH, no key pair, IMDSv2 only. Admin a
 
 Module path in the repo: `packages/tendb/terraform/modules/aws/engine`.
 
+[`tendb init`](/reference/cli/#tendb-init) generates exactly this wiring (network + engine) into your project, with the module source pinned via its `--ref` flag — the reference below applies to scaffolded deployments unchanged.
+
 ## Requirements
 
 - Terraform `>= 1.11` — the API verification token is written with the write-only `value_wo` argument so it never enters Terraform state or plan.

@@ -10,7 +10,7 @@ npm install -g @10play/tendb
 tendb --version
 ```
 
-Every command talks to the DBLab Engine API on your engine host — through the [platform's](/concepts/platforms/) native tunnel (AWS SSM by default; IAP on gcp, Bastion on azure, plain loopback locally — no open ports, no SSH keys), or directly with [`--api-url`](/reference/configuration/#direct-mode---api-url). Configuration comes from flags, `TENDB_*` environment variables, and `tendb.json` — see the [configuration reference](/reference/configuration/).
+Every command talks to the DBLab Engine API on your engine host — through the [platform's](/concepts/platforms/) native tunnel (AWS SSM by default; IAP on GCP, Bastion on Azure, plain loopback locally — no open ports, no SSH keys), or directly with [`--api-url`](/reference/configuration/#direct-mode---api-url). Configuration comes from flags, `TENDB_*` environment variables, and `tendb.json` — see the [configuration reference](/reference/configuration/).
 
 ## Global conventions
 
@@ -22,7 +22,7 @@ These flags work on every leaf command:
 |---|---|---|
 | `--env <name>` | — | Select an environment block from `tendb.json` |
 | `--platform <name>` | `aws` | Platform adapter: `aws`, `gcp`, `azure`, or `local` |
-| `--region <region>` | — | AWS region |
+| `--region <region>` | — | AWS/GCP region |
 | `--profile <profile>` | — | AWS profile (loaded via the shared credentials file) |
 | `--ssm-prefix <prefix>` | `/tendb` | SSM parameter prefix |
 | `--instance-id <id>` | — | DBLab host instance id (skips the SSM `instance-id` lookup) |
@@ -62,7 +62,7 @@ The name does triple duty: it is the DBLab branch name, the clone id, and (with 
 | 2 | Usage error (bad name, bad flag value, missing token in direct mode, …) |
 | 3 | Branch/clone not found |
 | 4 | Timeout, or a clone entered a FATAL state |
-| 5 | Missing dependency (`session-manager-plugin` or `psql` not on `PATH`) |
+| 5 | Missing dependency (`session-manager-plugin`, `terraform`, or `psql` not on `PATH`) |
 | 10 | Platform down (the SSM `instance-id` or token parameter is missing) |
 | 42 | Clone capacity exhausted (port pool full) |
 
@@ -71,6 +71,74 @@ Errors print as `error: <message>` plus an optional `hint:` line on stderr. `psq
 :::note
 Commander's own parse errors (unknown command, missing required argument) exit with code 1, not 2. Code 2 applies to usage errors raised by tendb itself.
 :::
+
+## tendb init
+
+Scaffold a Terraform deployment plus `tendb.json` into the current project — the npm-native way to stand the infrastructure up anywhere.
+
+```bash
+npx @10play/tendb init                      # interactive
+npx @10play/tendb init --platform aws --yes \
+  --region us-east-1 --pg-version 16 \
+  --source-secret-arn arn:aws:secretsmanager:...   # scripted
+```
+
+Prompts for the platform (`aws` / `gcp` / `azure` / `local`) and its required inputs, then writes:
+
+- `tendb/` (override with `--dir`) — `main.tf`, `variables.tf`, `outputs.tf`, a generated `terraform.tfvars`, a `README.md` of next steps, and a `.gitignore` for state files. The local platform adds `seed/seed.sql` and `scripts/host-setup.sh`. It is plain Terraform you own — edit freely.
+- `tendb.json` at the project root — created, or merged into an existing one (your keys win; switching an existing config to a different platform needs `--force`).
+
+Every prompt has a flag twin, so `--yes` makes init fully scriptable:
+
+| Flag | Platform | Meaning |
+|---|---|---|
+| `--dir <path>` | all | Deployment directory (default `./tendb`) |
+| `--name <name>` | all | Resource-name prefix (default `tendb`) |
+| `--size <size>` | all | `small` \| `medium` \| `large` \| `xlarge` (default `small`) |
+| `--pg-version <major>` | all | Postgres major of the source — **must match** or restore fails |
+| `--ref <git-ref>` | all | Pin the Terraform module sources to a tendb version |
+| `--modules-source <path>` | all | Use a local modules checkout instead of git (development) |
+| `--source-secret-arn <arn>` | aws | Secrets Manager ARN of the source URL (blank → fill in later) |
+| `--region <region>` | aws, gcp | Region (global flag) |
+| `--project <id>` / `--zone <zone>` | gcp | Project and zone |
+| `--source-secret-id <id>` | gcp | Secret Manager id of the source URL |
+| `--location <loc>` | azure | Azure location (default `northeurope`) |
+| `--subscription-id <id>` | azure | Subscription (blank → `ARM_SUBSCRIPTION_ID`) |
+| `--ssh-public-key <path\|key>` | azure | VM admin key — a path is read, a literal is used as-is |
+| `--source-secret-name <name>` | azure | Key Vault secret name for the source URL |
+| `--source-url <url>` | local | Source Postgres URL (blank → seeded demo container) |
+| `--state-dir <path>` | local | Params dir (default `~/.tendb/local`) |
+
+- `--yes` (or a non-TTY) accepts defaults and errors, listing any answer that has no default and no flag.
+- A non-empty `--dir` is refused without `--force`; `--force` overwrites only scaffold-owned files and never deletes (state files and your own files survive).
+
+Exit codes: 0 scaffolded · 1 cancelled at a prompt · 2 usage (missing required flags under `--yes`, platform mismatch without `--force`, non-empty dir).
+
+## tendb up
+
+Bring the scaffolded deployment up: preflight → `terraform init` + `terraform apply` → fold the stack's `cli_discovery` output back into `tendb.json`.
+
+```bash
+tendb up            # interactive terraform approval
+tendb up --yes      # -auto-approve
+```
+
+- The deploy dir resolves from `--dir`, else `deployDir` in `tendb.json`, else `./tendb`.
+- Preflight (skippable with `--skip-preflight`) catches what a clean apply would hide: the source secret must exist (Secrets Manager on AWS, `gcloud secrets describe` on GCP), and on the local platform it runs `scripts/host-setup.sh` (colima VM + zpool) and points terraform at the colima Docker socket.
+- On Azure the first apply is two-phase — `up` targets the Key Vault first, prompts for the source URL (stored via `az keyvault secret set`), then applies the rest.
+- `--no-init` skips `terraform init`; a re-run is a plain re-apply. `--env <name>` writes the discovery outputs into that `environments` block instead of the top level (the block must already exist).
+
+Exit codes: 0 up and wired · 1 terraform/preflight failure (message + hint on stderr) · 2 no deployment found · 5 `terraform` not on `PATH` (with an install hint).
+
+## tendb down
+
+`terraform destroy` the deployment. Asks for confirmation (or `--yes`); refuses without `--yes` when non-interactive. Keeps `tendb.json`, the state file, and (locally) the colima VM — `colima delete` reclaims that. `--dir <path>` overrides the deployment directory, same resolution as `up`.
+
+```bash
+tendb down --yes
+```
+
+Exit codes: 0 destroyed · 1 cancelled or terraform failure · 2 no deployment found, or non-interactive without `--yes` · 5 `terraform` not on `PATH`.
 
 ## tendb branches
 

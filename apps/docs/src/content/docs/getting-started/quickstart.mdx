@@ -4,8 +4,11 @@ description: Deploy the tendb engine into your AWS account and create your first
 ---
 
 import { Steps, Tabs, TabItem, LinkCard, CardGrid } from '@astrojs/starlight/components';
+import ConsoleShot from '../../../components/ConsoleShot.astro';
+import dashDark from '../../../assets/console/dashboard-dark.png';
+import dashLight from '../../../assets/console/dashboard-light.png';
 
-This guide takes you from an empty AWS account to a working branch database: one `terraform apply`, one config file, one CLI install, one `tendb branches create`. The engine is a single EC2 host running [DBLab Engine](https://postgres.ai/) (Database Lab Engine, by Postgres.ai) on ZFS — it dumps your source database on a schedule and serves copy-on-write clones in seconds.
+This guide takes you from an empty AWS account to a working branch database: one `npx @10play/tendb init`, one `tendb up`, one `tendb branches create`. The engine is a single EC2 host running [DBLab Engine](https://postgres.ai/) (Database Lab Engine, by Postgres.ai) on ZFS — it dumps your source database on a schedule and serves copy-on-write clones in seconds.
 
 ## Prerequisites
 
@@ -13,7 +16,7 @@ You need:
 
 - **An AWS account** with credentials configured locally (`aws configure`, SSO, or environment variables). Applying the Terraform stack requires broad permissions (EC2, VPC, IAM, SSM, KMS); day-to-day CLI use needs only the narrow policy the module outputs — you'll attach that in step 4.
 - **Terraform >= 1.11** and AWS provider `~> 6.0`. The 1.11 floor is real: the module uses write-only (`value_wo`) arguments so the API token never enters Terraform state.
-- **Node.js >= 20** for the CLI.
+- **Node.js >= 20** for the CLI. Install it globally (`npm install -g @10play/tendb`) so the bare `tendb` commands below work — or prefix every command with `npx @10play/tendb` instead.
 - **The AWS Session Manager plugin** — the CLI reaches the engine exclusively through SSM port-forwards, no SSH, no open database ports:
 
   <Tabs>
@@ -33,7 +36,7 @@ You need:
     </TabItem>
   </Tabs>
 
-- **`psql`** (optional, for `tendb psql`): `brew install libpq` on macOS, or your distro's `postgresql-client` package.
+- **`psql`** — used in step 1 to check your source's major version, and by `tendb psql`: `brew install libpq` on macOS, or your distro's `postgresql-client` package.
 
 ## Zero to first branch
 
@@ -44,128 +47,74 @@ You need:
    The engine host pulls the source URL at boot through its instance profile — it never transits Terraform state, user data, or CI. Create the secret out of band:
 
    ```sh
+   export SOURCE_URL='postgres://user:pass@host:5432/dbname'
    aws secretsmanager create-secret \
      --name tendb/source-url \
-     --secret-string 'postgres://user:pass@host:5432/dbname'
-   ```
-
-   Note the `ARN` in the response — Terraform needs it in the next step.
-
-   Any Postgres URL works: Neon, Aurora, RDS, self-hosted. If your secret is a JSON object rather than a bare URL (say `{"NEON_DATABASE_URL": "postgres://..."}`), you'll pass the key name as `source_secret_json_key` below.
-
-2. **Deploy the stack with Terraform.**
-
-   Clone the repo and use the standalone example, which provisions a minimal VPC plus the engine:
-
-   ```sh
-   git clone https://github.com/10play/tendb.git
-   cd tendb/packages/tendb/terraform/examples/standalone
-   ```
-
-   :::caution
-   The checked-in `terraform.tfvars` in this directory pins the maintainer's live stack — real account ARNs, AMI IDs, and domains. Replace it entirely with your own values.
-   :::
-
-   Write your own `terraform.tfvars`:
-
-   ```hcl
-   region                 = "us-east-1"
-   size                   = "small"          # t3.medium, 20 GB pool, up to 10 clones
-   postgres_major_version = 16               # MUST match your source's major version
-   source_secret_arn      = "arn:aws:secretsmanager:us-east-1:123456789012:secret:tendb/source-url"
-
-   # Only if the secret is JSON rather than a bare URL:
-   # source_secret_json_key = "NEON_DATABASE_URL"
-
-   # Neon sources: exclude Neon-proprietary extensions from the dump
-   # dump_exclude_extensions = ["pg_session_jwt"]
-   ```
-
-   `postgres_major_version` has no default on purpose. It selects the clone Postgres image (`postgresai/extended-postgres:<major>-0.8.0`), and **the clone image's major version must match the source or the restore fails**. Check yours with:
-
-   ```sh
+     --secret-string "$SOURCE_URL"
    psql "$SOURCE_URL" -c 'show server_version'
    ```
 
-   Then apply:
+   Note two things from the output: the secret **ARN**, and your source's Postgres **major version** — the scaffolder asks for both in the next step. Any Postgres URL works: Neon, Aurora, RDS, self-hosted.
+
+2. **Scaffold the deployment.**
+
+   From your project root:
 
    ```sh
-   terraform init
-   terraform apply
+   npx @10play/tendb init
    ```
 
-   The apply finishes in a few minutes. Note the outputs: `ssm_prefix` (goes into `tendb.json`), `client_iam_policy_arn` (next step), and `instance_id`.
+   It asks for the platform (`aws`), region, size, the Postgres major version, and the secret ARN from step 1, then writes a `tendb/` directory (real Terraform you own and can edit — a minimal VPC plus the engine, with module sources pinned to a tendb release) and a `tendb.json` at your project root. Every prompt has a flag twin for CI: `npx @10play/tendb init --platform aws --yes --region us-east-1 --pg-version 16 --source-secret-arn arn:...`.
 
-   :::note
-   The host has zero ingress by default — no SSH, no key pair, IMDSv2 only. All admin and client access rides SSM Session Manager. Also be aware: any Terraform change that alters the engine's user data **replaces the instance and destroys the ZFS pool and every branch on it** (data re-syncs from source at boot). See [Operations](/guides/operations/) before changing a deployed stack.
+   The Postgres major version is asked without a default on purpose: it selects the clone Postgres image, and **the clone image's major version must match the source or the restore fails** — that's what the `show server_version` in step 1 was for.
+
+   Two edits worth making in `tendb/terraform.tfvars` before bringing it up: if the secret is a JSON object rather than a bare URL (say `{"NEON_DATABASE_URL": "postgres://..."}`), set `source_secret_json_key` to the key name; Neon sources also want `dump_exclude_extensions = ["pg_session_jwt"]`.
+
+   `tendb.json` is a plain committed config file — the CLI walks upward from the current directory until it finds one, so the repo root covers every subdirectory. Add `"profile": "your-aws-profile"` if you use named profiles; see [Configuration](/reference/configuration/) for every field.
+
+3. **Bring it up.**
+
+   ```sh
+   tendb up
+   ```
+
+   `up` verifies the source secret exists, then runs `terraform init` + `terraform apply` in `tendb/` (a few minutes) and folds the stack's discovery outputs back into `tendb.json` — no hand-written config. Plain `terraform apply` in the directory works too; `tendb down` destroys the stack. The host has zero ingress by default — no SSH, no key pair, IMDSv2 only; all admin and client access rides SSM Session Manager.
+
+   :::caution
+   Any Terraform change that alters the engine's user data **replaces the instance and destroys the ZFS pool and every branch on it** (data re-syncs from source at boot). See [Operations](/guides/operations/) before changing a deployed stack.
    :::
 
-3. **Grant your users the client IAM policy.**
+   <details>
+   <summary>Under the hood / doing it by hand</summary>
 
-   The engine module renders a least-privilege policy for CLI users and CI: SSM session access scoped to the engine host by tag, plus read access to the discovery parameters (including the API token — the CLI derives clone passwords from it locally). The standalone example sets `create_client_iam_policy = true`, so the policy already exists as a managed policy — attach its ARN to your user, group, or CI role:
+   The scaffold is a thin root module over `terraform/modules/aws/{network,engine}` from the [tendb repo](https://github.com/10play/tendb). Prefer full control? Clone the repo and start from `packages/tendb/terraform/examples/standalone` — that's the maintainers' own deployment wiring (its committed `terraform.tfvars` pins their live stack; replace it entirely).
+
+   </details>
+
+4. **Grant your users the client IAM policy.**
+
+   The engine module renders a least-privilege policy for CLI users and CI: SSM session access scoped to the engine host by tag, plus read access to the discovery parameters (including the API token — the CLI derives clone passwords from it locally). The scaffold sets `create_client_iam_policy = true`, so the policy already exists as a managed policy — attach its ARN to your user, group, or CI role:
 
    ```sh
    aws iam attach-user-policy \
      --user-name you \
-     --policy-arn "$(terraform output -raw client_iam_policy_arn)"
+     --policy-arn "$(terraform -chdir=tendb output -raw client_iam_policy_arn)"
    ```
 
    If you'd rather embed the JSON in your own IAM setup, the raw document is the module's `client_iam_policy_json` output. If your local credentials are already admin, you can skip this step for yourself — but CI will need it.
 
-4. **Create `tendb.json` in your project.**
+5. **Wait for the first sync.**
 
-   The CLI discovers the engine through SSM parameters under a prefix (default `/tendb` — the standalone example's `ssm_prefix` output confirms yours). Put a `tendb.json` at your project root:
+   At boot the engine dumps your source database and restores it into the ZFS pool — minutes for small databases, hours for large ones. Watch it with `tendb status`:
 
-   ```json
-   {
-     "ssmPrefix": "/tendb",
-     "region": "us-east-1"
-   }
+   ```
+   health   sync mode  sync status  last refresh  next refresh  data state at    disk        clones
+   OK       logical    finished     -             in 15h        20260818123448   0% of 19GB  0 / 10
    ```
 
-   The CLI walks upward from the current directory until it finds one, so committing it at the repo root covers every subdirectory. Add `"profile": "your-aws-profile"` if you use named profiles.
+   Once `data state at` shows a timestamp, the first snapshot exists and branches will provision. (You don't have to poll: `branches create` waits up to 15 minutes for the first snapshot on its own.) If the first sync fails: the boot log on the host is `/var/log/dblab-init.log`, engine logs are `docker logs dblab_server`, and `aws ssm start-session --target <instance_id>` reaches the host — there is no SSH.
 
-   :::note
-   The schema is strict — an unknown key (a typo like `"ssm_prefix"`) fails the whole config load with exit code 2. See [Configuration](/reference/configuration/) for every field and the `TENDB_*` environment variables.
-   :::
-
-5. **Install the CLI.**
-
-   ```sh
-   npm install -g @10play/tendb
-   # or
-   pnpm add -g @10play/tendb
-   ```
-
-   Verify:
-
-   ```sh
-   tendb --help
-   ```
-
-   To run from the repo instead (for development):
-
-   ```sh
-   cd tendb/packages/tendb/cli
-   pnpm install && pnpm build
-   node dist/index.js --help    # or: npm link, then use `tendb` as usual
-   ```
-
-6. **Wait for the first sync.**
-
-   At boot the engine dumps your source database and restores it into the ZFS pool — minutes for small databases, hours for large ones. Watch it with:
-
-   ```sh
-   tendb status
-   ```
-
-   The table shows `health`, `sync mode`, `sync status`, `last refresh`, `next refresh`, `data state at`, `disk`, and `clones` used vs. capacity. Once `data state at` shows a timestamp, the first snapshot exists and branches will provision. (You don't have to poll: `branches create` waits up to 15 minutes for the first snapshot on its own.)
-
-   :::tip
-   If the first sync fails, the boot log on the host is `/var/log/dblab-init.log`, and the engine logs are `docker logs dblab_server`. Reach the host with `aws ssm start-session --target <instance_id>` — there is no SSH.
-   :::
-
-7. **Create your first branch.**
+6. **Create your first branch.**
 
    ```sh
    tendb branches create my-feature
@@ -180,10 +129,10 @@ You need:
    The command is idempotent — running it again returns the same branch. A bare number is PR shorthand: `tendb branches create 42` creates `pr-42`.
 
    :::caution
-   The printed URI contains the real password. In CI, mask it: `URI=$(tendb ci ensure "$PR" | tail -1)` then `echo "::add-mask::$URI"`.
+   The printed URI contains the real password. In CI, mask it: `URI=$(tendb ci ensure "$PR" | tail -1)` then `echo "::add-mask::$URI"` — `tendb ci` is the CI-facing variant of `branches`, covered in [CI previews](/guides/ci-previews/).
    :::
 
-8. **Connect.**
+7. **Connect.**
 
    The quickest look around — auto-tunnel plus interactive psql:
 
@@ -226,6 +175,16 @@ You need:
    ```sh
    tendb branches delete my-feature
    ```
+
+8. **Open the console.**
+
+   ```sh
+   tendb console
+   ```
+
+   A Neon-style dashboard on `http://localhost:4400`, over the same SSM session — branches, a SQL editor, snapshots, and alerts, with nothing sensitive ever reaching the browser. See [the web console](/guides/console/) for every screen.
+
+   <ConsoleShot dark={dashDark} light={dashLight} alt="The tendb console dashboard" caption="tendb console — branches, storage, sync state, and platform settings (shown here on a local-platform deployment; yours will read SSM)." />
 
 </Steps>
 

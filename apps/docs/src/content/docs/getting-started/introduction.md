@@ -90,7 +90,7 @@ passwords locally — no credentials are stored anywhere.
 
 ```bash
 tendb branches create my-feature   # copy-on-write branch DB, ready in ~5s
-tendb psql my-feature              # auto SSM tunnel + psql
+tendb psql my-feature              # auto tunnel + psql
 tendb console                      # Neon-style dashboard on localhost
 tendb ci ensure 42 | tail -1       # CI: connection URI as the last stdout line
 ```
@@ -137,6 +137,10 @@ full feature-by-feature comparison with Neon, see
 
 ## Next steps
 
-Deploy the host and create your first branch in the
-[Quickstart](/getting-started/quickstart/), or read the
-[architecture](/concepts/architecture/) in depth.
+Getting the infrastructure up is one command from any project —
+`npx @10play/tendb init` scaffolds the Terraform and config, `tendb up`
+applies it. Walk through it in the [Quickstart](/getting-started/quickstart/)
+(AWS) or the [local quickstart](/getting-started/local-quickstart/) (Docker on
+your laptop, no cloud account), browse the runnable
+[example app](https://github.com/10play/tendb/tree/main/apps/example), or read
+the [architecture](/concepts/architecture/) in depth.

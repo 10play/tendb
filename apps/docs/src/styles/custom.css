@@ -1,11 +1,12 @@
-/* tendb docs — 10play brand theme (https://10play.dev)
-   Accent: 10play pink #FF0A54; neutrals tinted toward 10play navy #14161F. */
+/* tendb docs — brand theme matching the tendb console
+   (cli/console/src/index.css): accent green #00e599/#00a06f on
+   10play-navy-tinted neutrals (https://10play.dev). */
 
 :root {
-  /* Accent (10play pink) — dark theme */
-  --sl-color-accent-low: #4b0421;
-  --sl-color-accent: #ff0a54;
-  --sl-color-accent-high: #ffc6d3;
+  /* Accent (console green) — dark theme */
+  --sl-color-accent-low: #01311f;
+  --sl-color-accent: #00a06f;
+  --sl-color-accent-high: #9ef0d2;
 
   /* Navy-tinted neutrals — dark theme */
   --sl-color-white: #ffffff;
@@ -19,10 +20,10 @@
 }
 
 :root[data-theme='light'] {
-  /* Accent (10play pink, darkened for contrast on white) — light theme */
-  --sl-color-accent-low: #ffc6d3;
-  --sl-color-accent: #d1003f;
-  --sl-color-accent-high: #74001f;
+  /* Accent (console green, darkened for contrast on white) — light theme */
+  --sl-color-accent-low: #c8f2e0;
+  --sl-color-accent: #007a50;
+  --sl-color-accent-high: #00402a;
 
   /* 10play's light, minimal neutrals */
   --sl-color-white: #14161f;
@@ -56,7 +57,7 @@ figure.diagram figcaption {
   margin-top: 0.65rem;
 }
 
-/* Cards: on hover, a pink light traces the border — no movement, border only.
+/* Cards: on hover, an accent light traces the border — no movement, border only.
    The ring is a conic gradient masked down to the 1px border area; ::before is
    a blurred copy that reads as glow. Browsers without @property support show a
    static accent segment instead of the rotation. */
@@ -129,9 +130,16 @@ figure.diagram figcaption {
   }
 }
 
-/* Landing hero: gradient title toward the brand pink, roomier tagline */
+/* Landing hero: gradient title toward the console green, roomier tagline */
 [data-has-hero] .hero h1 {
-  background: linear-gradient(90deg, var(--sl-color-white), #ff0a54);
+  background: linear-gradient(90deg, var(--sl-color-white), #00e599);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme='light'] [data-has-hero] .hero h1 {
+  background: linear-gradient(90deg, var(--sl-color-white), #007a50);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -139,4 +147,67 @@ figure.diagram figcaption {
 
 [data-has-hero] .hero .tagline {
   max-width: 42rem;
+}
+
+/* The hero console screenshot: frame it like a window instead of a floating
+   rectangle of pixels. */
+[data-has-hero] .hero img {
+  border-radius: 12px;
+  border: 1px solid var(--sl-color-gray-5);
+  box-shadow: 0 12px 48px rgb(0 0 0 / 0.35);
+}
+
+/* Console screenshots inside guides get the same, quieter framing. */
+.sl-markdown-content img {
+  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-5);
+}
+
+/* ConsoleShot component: theme-matched screenshot pairs with a visible caption. */
+:root[data-theme='dark'] .light-only {
+  display: none;
+}
+:root[data-theme='light'] .dark-only {
+  display: none;
+}
+figure.console-shot {
+  margin: 1.75rem 0;
+}
+figure.console-shot figcaption {
+  text-align: center;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+  margin-top: 0.65rem;
+}
+
+/* Hero rhythm: tighter band, larger image, visible secondary action. */
+[data-has-hero] .hero {
+  padding-block: clamp(1.5rem, 4vw, 3.5rem);
+}
+@media (min-width: 50rem) {
+  /* Starlight defaults to 7fr/4fr — size the image column to the screenshot
+     instead so it gets real room without starving the headline. */
+  [data-has-hero] .hero {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  [data-has-hero] .hero img {
+    width: clamp(20rem, 36vw, 30rem);
+  }
+  [data-has-hero] .hero h1 {
+    font-size: clamp(2rem, 3.4vw, 3.25rem);
+  }
+}
+[data-has-hero] .hero img {
+  height: auto;
+}
+
+/* One palette: Starlight cycles card icon chips through rainbow hues — pin
+   them to the brand accent. */
+.card .title svg.icon {
+  background-color: color-mix(in srgb, var(--sl-color-accent) 20%, var(--sl-color-black)) !important;
+  border-color: var(--sl-color-accent) !important;
+}
+[data-has-hero] .hero .sl-link-button.minimal {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }

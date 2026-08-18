@@ -81,7 +81,10 @@ export function SqlEditorScreen({ onNavigate }: { onNavigate: (screen: ScreenId)
           icon={<PlayIcon className="size-3" />}
         >
           Run
-          <span className="ml-1 font-mono text-[11px] opacity-60">{RUN_CHORD}</span>
+          {/* Chip, not bare glyphs: ⌘↵ at 11px was illegible on the contrast fill. */}
+          <span className="ml-1 rounded bg-on-contrast/15 px-1 py-0.5 font-mono text-[10.5px] leading-none">
+            {RUN_CHORD}
+          </span>
         </Button>
       </header>
 

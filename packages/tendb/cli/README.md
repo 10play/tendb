@@ -1,32 +1,66 @@
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/10play/tendb/main/apps/docs/src/assets/brand/tendb-lockup-dark.png">
+    <img src="https://raw.githubusercontent.com/10play/tendb/main/apps/docs/src/assets/brand/tendb-lockup-light.png" alt="tendb" width="170">
+  </picture>
+</div>
+
 # @10play/tendb
 
-Neon-style CLI + local console for a [tendb](../README.md) engine (DBLab on
-AWS, reached over SSM Session Manager).
+Neon-style Postgres branching on infrastructure you own. Copy-on-write
+branches of your real database — AWS, GCP, Azure, or your laptop's Docker —
+ready in seconds, powered by [DBLab Engine](https://postgres.ai) (Postgres.ai).
 
-## Commands
+[Documentation](https://10play.github.io/tendb/) · [Quickstart](https://10play.github.io/tendb/getting-started/quickstart/) · [Example app](https://github.com/10play/tendb/tree/main/apps/example)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/10play/tendb/main/apps/docs/src/assets/console/dashboard-dark.png">
+  <img src="https://raw.githubusercontent.com/10play/tendb/main/apps/docs/src/assets/console/dashboard-light.png" alt="The tendb console: branches, storage, sync state, and platform settings on one dashboard" width="820">
+</picture>
+
+*The bundled console (`tendb console`) — branches, SQL editor, snapshots, and
+alerts on localhost. Nothing sensitive ever reaches the browser.*
+
+## Get the infra up (from zero)
+
+Prereqs: Node ≥ 20, Terraform ≥ 1.11, and (for the `local` platform) Docker.
+`local` needs no cloud account — on macOS the preflight builds a small colima
+VM (Homebrew required; Docker Desktop's kernel has no ZFS); Linux runs it
+natively.
+
+```sh
+npm install -g @10play/tendb
+
+tendb init --platform local   # scaffold terraform + tendb.json into your project
+tendb up                      # preflight + terraform apply + wire tendb.json
+tendb branches create my-feature
+```
+
+`init` prompts for a platform (`aws` · `gcp` · `azure` · `local`) and its few
+required inputs, then writes a `tendb/` Terraform directory you own (module
+sources pinned to a tendb release) and a `tendb.json`. `tendb up` wraps
+`terraform init && apply` and folds the stack's discovery outputs back into
+`tendb.json`; `tendb down` destroys the stack. On `local`, `up` also
+provisions the ZFS Docker host and a seeded demo source to branch from.
+
+## Daily commands
 
 | Command | What it does |
 |---|---|
-| `tendb branches create <name> [--from main]` | idempotent create-or-reuse; prints the connection URI |
-| `tendb branches list \| get \| delete \| reset <name>` | branch lifecycle (`reset` recreates the clone from its branch snapshot) |
-| `tendb connection-string <name> [--local]` | URI only on stdout; `--local` rewrites to 127.0.0.1 for tunnel use |
-| `tendb status` | engine health, sync state, disk, clones used / capacity |
+| `tendb branches create <name>` | idempotent create-or-reuse; prints the connection URI |
 | `tendb psql <name> [-- args]` | auto tunnel + psql |
-| `tendb tunnel [<name>] [--port N] [-- cmd]` | port-forward a clone (or the API); exec form runs `cmd` with `DATABASE_URL` set |
-| `tendb ui` | DBLab's embedded engine UI (tunnels 2345+2346, prints the token) |
-| `tendb console` | **the tendb console** — Neon-style dashboard on localhost |
-| `tendb ci ensure \| url \| delete <id>` | machine contract (below) |
-| `tendb migrate <branch> -- <cmd>` | run `cmd` with `DATABASE_URL` on the branch; `--scratch` rehearses on an ephemeral branch and cleans up |
-| `tendb checkup [--strict]` | health findings (engine, sync, disk, capacity, replication); exit 1 on critical — cron-able |
-| `tendb snapshots list \| create \| config` | pool snapshots: take one on demand (O(1) `zfs snapshot`, ~10s wall at any DB size), read/update the schedule the engine host follows |
-
-`branches create --fresh` and `migrate --fresh` snapshot the streaming sync
-target first — the branch is *main as of now*, not as of the last snapshot.
-
-Global flags: `--env`, `--region`, `--profile`, `--ssm-prefix`, `--instance-id`,
-`--api-url`, `--config`, `-o/--output table|json`, `--quiet`.
+| `tendb status` | engine health, sync state, disk, clone capacity |
+| `tendb console` | the dashboard shown above, on localhost |
+| `tendb migrate <branch> -- <cmd>` | run `cmd` with `DATABASE_URL` on the branch |
+| `tendb ci ensure <id>` | a preview database per pull request (contract below) |
 
 A bare number is PR shorthand everywhere: `tendb ci ensure 42` → branch `pr-42`.
+The [full command reference](https://10play.github.io/tendb/reference/cli/)
+covers the rest — `tunnel`, `connection-string`, `snapshots`, `schema`,
+`checkup`, `ui`, `down` — plus every flag and exit code.
+
+Global flags: `--env`, `--platform`, `--region`, `--profile`, `--ssm-prefix`,
+`--instance-id`, `--api-url`, `--config`, `-o/--output table|json`, `--quiet`.
 
 ## The CI contract (`tendb ci …`)
 
@@ -47,7 +81,7 @@ Drop-in for the legacy `dblab-branch.sh` / `neon-branch.sh`:
 | 2 | usage error |
 | 3 | branch/clone not found |
 | 4 | timeout or clone FATAL |
-| 5 | missing local dependency (session-manager-plugin, psql) |
+| 5 | missing local dependency (session-manager-plugin, terraform, psql) |
 | 10 | platform down |
 | 42 | clone capacity exhausted (port pool full) |
 
@@ -121,11 +155,12 @@ Env vars: `TENDB_ENV`, `TENDB_SSM_PREFIX`, `TENDB_REGION`,
 
 ## The console
 
-`tendb console` opens an SSM tunnel, serves the bundled SPA + a local API on
+`tendb console` opens the platform's native tunnel (SSM on AWS, IAP on GCP,
+Bastion on Azure, loopback locally), serves the bundled SPA + a local API on
 `127.0.0.1:<port>` (default 4400), and opens the browser. Screens: branches
 (create/delete/reset + connection details), SQL editor (queries run server-side
-through per-clone tunnels), snapshots & sync. The verification token and AWS
-credentials never reach the browser.
+through per-clone tunnels), snapshots & sync. The verification token and your
+cloud credentials never reach the browser.
 
 ## Development
 
@@ -135,12 +170,6 @@ pnpm test            # vitest: unit + built-binary contract tests vs a mock engi
 pnpm build           # tsup (CLI → dist/index.js) + vite (console → dist/console/)
 ```
 
-Console dev loop: `node dist/index.js console --no-open --port 4400` in one
-terminal, `pnpm exec vite dev console` in another (the vite dev server proxies
-`/api` to :4400).
-
-Transport note: the CLI spawns `session-manager-plugin` with the same six-arg
-invocation the aws CLI uses (StartSession response JSON, region, `StartSession`,
-profile, request params JSON, SSM endpoint). That contract is de-facto, not
-documented — if a plugin release breaks it, `src/aws/session.ts` is the only
-place to fix.
+Working on the CLI or console itself? See the
+[repository](https://github.com/10play/tendb) for the dev loop and transport
+internals.

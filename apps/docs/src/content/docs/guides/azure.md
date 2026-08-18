@@ -19,6 +19,17 @@ by `size`: `Standard_B2s` → `Standard_E2s_v5` → `Standard_E4s_v5` →
 
 ## Provisioning
 
+The scaffolder is the quickest path — and `tendb up` automates the two-phase
+first apply described below (vault first, then the source secret, then the
+rest):
+
+```sh
+npx @10play/tendb init --platform azure
+tendb up
+```
+
+Or by hand from a repo clone:
+
 ```sh
 cd packages/tendb/terraform/examples/azure-standalone
 # copy terraform.tfvars.example → terraform.tfvars

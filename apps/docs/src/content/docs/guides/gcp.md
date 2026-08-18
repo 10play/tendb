@@ -17,6 +17,17 @@ the param store, and IAP TCP forwarding as the tunnel. Machine types by
 
 ## Provisioning
 
+The scaffolder is the quickest path — it prompts for project/zone/secret and
+generates the stack into your own repo, and `tendb up` verifies the source
+secret before applying:
+
+```sh
+npx @10play/tendb init --platform gcp
+tendb up
+```
+
+Or by hand from a repo clone:
+
 ```sh
 cd packages/tendb/terraform/examples/gcp-standalone
 # copy terraform.tfvars.example → terraform.tfvars, fill in project/zone/source secret

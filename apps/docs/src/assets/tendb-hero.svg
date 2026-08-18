@@ -1,18 +1,15 @@
-<svg viewBox="0 0 320 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="tendb mark">
+<svg viewBox="0 0 320 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="tendb mark — isometric data planes with the top plane sliding off">
   <defs>
     <radialGradient id="tendb-glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#ff0a54" stop-opacity="0.28"/>
+      <stop offset="0" stop-color="#ff0a54" stop-opacity="0.26"/>
       <stop offset="0.7" stop-color="#ff0a54" stop-opacity="0.08"/>
       <stop offset="1" stop-color="#ff0a54" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <circle cx="160" cy="150" r="150" fill="url(#tendb-glow)"/>
-  <g transform="translate(9 10)">
-    <g fill="none" stroke="#ff0a54" stroke-width="40" stroke-linecap="round">
-      <path d="M66 214 150 90"/>
-      <path d="M152 180 191 122"/>
-    </g>
-    <path fill="#ff0a54" transform="translate(228 72) scale(0.5) translate(-167 -161)"
-      d="m140.14 123.75-24.96 41.56c-12.44 20.71 2.48 47.08 26.64 47.08h49.93c24.16 0 39.08-26.37 26.64-47.08l-24.96-41.56c-12.07-20.1-41.21-20.1-53.28 0z"/>
+  <circle cx="160" cy="140" r="140" fill="url(#tendb-glow)"/>
+  <g transform="translate(25 23)">
+    <path d="M40 159 l70 -35 l70 35 l-70 35 z" fill="#b3073e"/>
+    <path d="M40 125 l70 -35 l70 35 l-70 35 z" fill="#d9084a"/>
+    <path d="M88 73 l70 -35 l70 35 l-70 35 z" fill="#ff0a54"/>
   </g>
 </svg>

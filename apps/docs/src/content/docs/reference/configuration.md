@@ -42,6 +42,7 @@ All fields are optional:
 | `gcpProject` | string | the gcloud CLI's project | `gcp` platform only: Secret Manager project holding the engine-contract params |
 | `azureVault` | string | — | `azure` platform only: Key Vault name holding the engine-contract params |
 | `stateDir` | string | `~/.tendb/local` | `local` platform only: state directory containing `params.json` |
+| `deployDir` | string | `tendb` | Terraform deployment dir written by [`tendb init`](/reference/cli/#tendb-init), relative to this file (top level only); `tendb up`/`down` run there |
 | `environments` | object of the above | — | Named environment blocks (top level only); select with `--env` / `TENDB_ENV` |
 
 ### Environments

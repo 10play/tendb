@@ -48,7 +48,8 @@ export function PerformanceScreen({ onNavigate }: { onNavigate: (screen: ScreenI
   );
 
   const ratio = data?.cacheHitRatio ?? null;
-  const ratioTone = ratio === null ? "dim" : ratio >= 0.99 ? "accent" : ratio >= 0.95 ? "warn" : "danger";
+  // Fresh clones start with a cold cache — only genuinely disk-bound ratios warn.
+  const ratioTone = ratio === null ? "dim" : ratio >= 0.97 ? "accent" : ratio >= 0.9 ? "warn" : "danger";
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-7 md:px-8">
@@ -107,7 +108,7 @@ export function PerformanceScreen({ onNavigate }: { onNavigate: (screen: ScreenI
                 detail={
                   ratio === null
                     ? "no reads on this clone yet"
-                    : ratio >= 0.99
+                    : ratio >= 0.97
                       ? "healthy — reads are served from memory"
                       : "reads are reaching disk"
                 }

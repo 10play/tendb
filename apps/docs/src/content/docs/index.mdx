@@ -1,12 +1,14 @@
 ---
 title: tendb
-description: Neon-style Postgres branching on your own AWS account.
+description: Neon-style Postgres branching on infrastructure you own — AWS, GCP, Azure, or your laptop's Docker.
 template: splash
 hero:
-  tagline: Copy-on-write branches of your real Postgres, on infrastructure you own — ready in seconds.
+  title: Branch your real Postgres in seconds
+  tagline: Copy-on-write branches of production-shaped data, on infrastructure you own — AWS, GCP, Azure, or your laptop's Docker.
   image:
-    file: ../../assets/tendb-hero.svg
-    alt: The tendb mark — two diverging branches
+    html: |
+      <img src="/tendb/console-hero-dark.png" alt="The tendb console — branch list, storage and sync tiles, and platform settings" class="dark-only hero-shot" width="1168" height="432" />
+      <img src="/tendb/console-hero-light.png" alt="The tendb console — branch list, storage and sync tiles, and platform settings" class="light-only hero-shot" width="1168" height="432" />
   actions:
     - text: Get started
       link: /tendb/getting-started/quickstart/
@@ -19,9 +21,9 @@ hero:
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
 ```bash
+npx @10play/tendb init             # scaffold the infra into your project
+tendb up                           # terraform apply + config wiring
 tendb branches create my-feature   # copy-on-write branch DB, ready in ~5s
-tendb psql my-feature              # auto SSM tunnel + psql
-tendb console                      # Neon-style dashboard on localhost
 tendb ci ensure 42 | tail -1       # CI: connection URI as the last stdout line
 ```
 
@@ -31,9 +33,10 @@ tendb ci ensure 42 | tail -1       # CI: connection URI as the last stdout line
     writable Postgres that costs only the pages you change. Create it, break
     it, delete it.
   </Card>
-  <Card title="Your own AWS account" icon="setting">
-    Bundled Terraform provisions one EC2 host in your VPC. No SaaS, no control
-    plane, no third party — your data never leaves your account.
+  <Card title="Infrastructure you own" icon="setting">
+    `tendb init` scaffolds the Terraform, `tendb up` applies it — one host in
+    your AWS, GCP, or Azure account, or Docker on your laptop. No SaaS, no
+    control plane; your data never leaves your infrastructure.
   </Card>
   <Card title="CI preview databases" icon="code-branch">
     `tendb ci ensure "$PR" | tail -1` prints a ready connection URI as the last
@@ -46,14 +49,14 @@ tendb ci ensure 42 | tail -1       # CI: connection URI as the last stdout line
     alerts.
   </Card>
   <Card title="Locked down by default" icon="approve-check-circle">
-    No SSH, no inbound internet. Everything rides AWS SSM Session Manager
-    port-forwards, and clone passwords are derived on demand — stored
-    nowhere.
+    No SSH, no inbound internet. Access rides each platform's native tunnel —
+    SSM on AWS, IAP on GCP, Bastion on Azure, loopback locally — and clone
+    passwords are derived on demand, stored nowhere.
   </Card>
   <Card title="Any Postgres source" icon="cloud-download">
     Sync from Neon, Aurora, RDS — anything with a `postgres://` URL. The
-    source connection string lives in Secrets Manager and is read by the host
-    at boot.
+    source connection string lives in your platform's secret store and is
+    read by the host at boot.
   </Card>
 </CardGrid>
 
@@ -62,5 +65,6 @@ tendb ci ensure 42 | tail -1       # CI: connection URI as the last stdout line
 tendb stands on [DBLab Engine](https://github.com/postgres-ai/database-lab-engine)
 by [Postgres.ai](https://postgres.ai) — the open-source engine that does the
 heavy lifting of ZFS thin cloning and copy-on-write branch databases. tendb
-adds the AWS packaging around it: Terraform provisioning, SSM transport, the
-CLI, the web console, and the CI contract.
+adds the platform packaging around it: Terraform provisioning for
+AWS/GCP/Azure/local, tunnel transports, the CLI, the web console, and the CI
+contract.

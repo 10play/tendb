@@ -4,10 +4,13 @@ description: Run the whole tendb stack — engine, snapshots, branches — as Do
 ---
 
 import { Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
+import ConsoleShot from '../../../components/ConsoleShot.astro';
+import sqlDark from '../../../assets/console/sql-dark.png';
+import sqlLight from '../../../assets/console/sql-light.png';
 
 The [local platform](/concepts/platforms/) runs the exact same DBLab engine
 the cloud platforms run, as containers on your machine: no cloud account, no
-tunnels, branches on `127.0.0.1`. It is the fastest way to try tendb and a
+tunnels, branches on `127.0.0.1`. It is the fastest way to try tendb, and a
 real dev target — same CLI, same console, same snapshot semantics.
 
 ## Prerequisites
@@ -21,70 +24,76 @@ real dev target — same CLI, same console, same snapshot semantics.
     required; colima is installed for you if missing.
   - **Linux**: same steps natively (needs `sudo`; ZFS must be available for
     your kernel, which stock Ubuntu provides).
-- **Terraform >= 1.11** and **Node.js >= 20** for the CLI.
-- A **source Postgres URL** — or nothing: the example provisions a seeded
+- **Terraform >= 1.11** and **Node.js >= 20** for the CLI. Install the CLI
+  globally (`npm install -g @10play/tendb`) so the bare `tendb` commands below
+  work — or prefix every command with `npx @10play/tendb`.
+- A **source Postgres URL** — or nothing: the scaffold provisions a seeded
   demo source container (500 users, 5000 orders) when you don't bring one.
 
 ## Zero to first branch
 
 <Steps>
 
-1. **Run the preflight.**
+1. **Scaffold it.**
+
+   From any project directory:
 
    ```sh
-   git clone https://github.com/10play/tendb.git && cd tendb
-   bash packages/tendb/terraform/modules/local/scripts/host-setup.sh
+   tendb init --platform local
    ```
 
-   Idempotent — run it again any time (it also re-imports the zpool after a
-   VM restart). On macOS it ends by printing the Docker socket to use:
+   Accept the defaults (or pass `--yes` — the local platform needs no answers)
+   and you get a `tendb/` directory — the Terraform for the engine +
+   [`tendb-snapshotd`](/reference/snapshotd/) containers, a seeded demo
+   source, the preflight script — plus a `tendb.json` pointing the CLI at it.
+
+2. **Bring it up.**
 
    ```sh
-   export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
+   tendb up
    ```
 
-2. **Apply the local stack.**
-
-   ```sh
-   terraform -chdir=packages/tendb/terraform/examples/local init
-   terraform -chdir=packages/tendb/terraform/examples/local apply
-   ```
-
-   This starts the engine container (API on `127.0.0.1:2345`), the
-   [`tendb-snapshotd`](/reference/snapshotd/) container, the demo source
-   (unless you set `source_url`), and writes the discovery file the CLI
-   reads: `~/.tendb/local/params.json`.
+   `up` first runs the preflight (`tendb/scripts/host-setup.sh` — idempotent;
+   on macOS it installs/starts the colima VM and builds the zpool, and `up`
+   points terraform at the colima Docker socket for you), then applies the
+   stack: engine container (API on `127.0.0.1:2345`), snapshotd, the demo
+   source (unless you set `source_url` in `tendb/terraform.tfvars`), and the
+   discovery file the CLI reads (`~/.tendb/local/params.json`).
 
    :::note
    The verification token lands in local Terraform state — a documented
    local-only concession (the cloud platforms use write-only secret
-   arguments). It is your dev machine; keep the example dir private.
+   arguments). It is your dev machine; keep the deploy dir private.
    :::
 
-3. **Point the CLI at it.**
+   <details>
+   <summary>Under the hood / doing it by hand</summary>
 
-   ```sh
-   export TENDB_PLATFORM=local TENDB_STATE_DIR=$HOME/.tendb/local
-   tendb status
-   ```
+   The same flow by hand is
+   `bash tendb/scripts/host-setup.sh`, `export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`,
+   then `terraform -chdir=tendb init && terraform -chdir=tendb apply` — or use
+   `packages/tendb/terraform/examples/local` from a repo clone. Setting
+   `TENDB_PLATFORM=local` env-only (no `tendb.json`) works too.
 
-   Or put `{ "platform": "local", "stateDir": "~/.tendb/local" }`-style
-   values in a [`tendb.json`](/reference/configuration/) (the path must be
-   absolute there). `status` shows `transport local` and the sync progress —
-   the demo source syncs in about a minute.
+   </details>
 
-4. **Branch, connect, snapshot.**
+3. **Branch, connect, snapshot.**
+
+   `tendb status` shows `transport local` and the sync progress — the demo
+   source syncs in about a minute. Then:
 
    ```sh
    tendb branches create my-feature
    tendb psql my-feature -- -c 'select count(*) from users'
-   tendb snapshots create        # ~10 s round-trip through snapshotd
+   tendb snapshots create        # ~10s round-trip through snapshotd
    ```
 
    Clone ports (`6000`+) are published on loopback and forwarded to your
-   mac by colima, so the printed URI dials as-is. The DBLab embedded UI is
-   on `http://127.0.0.1:2346` (`tendb ui` opens it), and
-   `tendb console` serves the full dashboard.
+   Mac by colima, so the printed URI dials as-is. The DBLab embedded UI is
+   on `http://127.0.0.1:2346` (`tendb ui` opens it), and `tendb console`
+   serves the full dashboard — here is its SQL editor on a branch:
+
+   <ConsoleShot dark={sqlDark} light={sqlLight} alt="The console's SQL editor querying a branch" caption="The console's SQL editor, querying a branch of the seeded demo data." />
 
 </Steps>
 
@@ -103,13 +112,18 @@ real dev target — same CLI, same console, same snapshot semantics.
 
 <CardGrid>
   <LinkCard
+    title="Example app"
+    description="apps/example in the repo: a scaffolded local platform + a demo that branches, migrates, and queries."
+    href="https://github.com/10play/tendb/tree/main/apps/example"
+  />
+  <LinkCard
     title="Platforms"
     description="How local, AWS, GCP, and Azure share one engine contract."
     href="/concepts/platforms/"
   />
   <LinkCard
     title="AWS quickstart"
-    description="The production path: one terraform apply into your own account."
+    description="The production path: scaffold, apply, and branch in your own AWS account."
     href="/getting-started/quickstart/"
   />
 </CardGrid>

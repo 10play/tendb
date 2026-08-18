@@ -3,6 +3,22 @@ title: The web console
 description: Run the tendb console locally with one command, or host it in your VPC behind Google login with the Terraform console module.
 ---
 
+import ConsoleShot from '../../../components/ConsoleShot.astro';
+import dashDark from '../../../assets/console/dashboard-dark.png';
+import dashLight from '../../../assets/console/dashboard-light.png';
+import branchesDark from '../../../assets/console/branches-dark.png';
+import branchesLight from '../../../assets/console/branches-light.png';
+import snapshotsDark from '../../../assets/console/snapshots-dark.png';
+import snapshotsLight from '../../../assets/console/snapshots-light.png';
+import alertsDark from '../../../assets/console/alerts-dark.png';
+import alertsLight from '../../../assets/console/alerts-light.png';
+import tablesDark from '../../../assets/console/tables-dark.png';
+import tablesLight from '../../../assets/console/tables-light.png';
+import sqlDark from '../../../assets/console/sql-dark.png';
+import sqlLight from '../../../assets/console/sql-light.png';
+import monitoringDark from '../../../assets/console/monitoring-dark.png';
+import monitoringLight from '../../../assets/console/monitoring-light.png';
+
 tendb ships a Neon-style web console: dashboard, branch management, snapshots, alerts, a schema browser, a SQL editor, and per-branch monitoring. It is one server with two ways to run it:
 
 - **Local** — `tendb console` on your machine, over your AWS credentials. Zero setup.
@@ -43,6 +59,8 @@ The app shell shows the environment name, transport badge (SSM or DIRECT), datab
 
 **Dashboard** — dismissible getting-started cards with copyable CLI commands; metric tiles for branches (clones used vs. capacity), storage (ZFS pool usage), sync status with last refresh, and data-state age; the platform settings panel (engine version, database, transport, instance, sync mode, next refresh); and a **New branch** dialog. When streaming replication is configured, a source pipeline diagram shows source → sync target → branches with per-hop health.
 
+<ConsoleShot dark={dashDark} light={dashLight} alt="The console dashboard" caption="The dashboard: getting-started cards, branch/storage/sync tiles, the branch list, and platform settings." />
+
 **Branches** — the full branch table with lineage indentation (branches form a tree via their parent), name search, and per-row state, port, data state, and age. Row actions:
 
 - **Connect** — expands to the connection URI (masked; the copy button copies the real value) plus a local URI when the console holds a tunnel.
@@ -50,9 +68,13 @@ The app shell shows the environment name, transport badge (SSM or DIRECT), datab
 - **Reset** — discards everything written to the clone since it was created (confirm dialog).
 - **Delete** — removes the clone and branch. Hidden for the root branch `main`.
 
+<ConsoleShot dark={branchesDark} light={branchesLight} alt="The branches table" caption="Branches: lineage, state, ports, data state, and per-row connect / reset / delete actions." />
+
 The New branch dialog validates the name (`[a-z0-9][a-z0-9-]{0,62}`), lets you pick a base branch, and — on streaming deployments, when branching from `main` — offers **"Start from the latest data"**, which snapshots the live sync target first so the branch is main *as of now*. On success it shows the connection URI, state, and port. In streaming mode the live `main` row gets Connect only: it is not a clone, so there is no reset or delete.
 
 **Snapshots** — cards for sync status, disk (with warning tones above 80% and danger above 92%), data state, and upstream replication (stream health, slot state, lag bytes, apply/sync error counters). On streaming deployments you also get a **Snapshot now** button (an O(1) ZFS snapshot — around ten seconds regardless of database size) and a **snapshot schedule** card — interval choices from manual to daily, retention 1–500 — saved to SSM and picked up by the engine host within seconds. On dump-mode deployments a **Refresh now** button triggers a full dump/restore refresh when the engine supports it. Below the cards, the snapshot table lists id, data state, age, and logical/physical sizes. See [Data refresh](/concepts/data-refresh/) for how the two sync modes differ.
+
+<ConsoleShot dark={snapshotsDark} light={snapshotsLight} alt="The snapshots screen" caption="Snapshots: sync, disk, and data-state cards over the snapshot table with per-branch ZFS sizes." />
 
 **Alerts** — current health findings with severity pills, plus:
 
@@ -62,15 +84,23 @@ The New branch dialog validates the name (`[a-z0-9][a-z0-9-]{0,62}`), lets you p
 
 The console server itself runs the health check every 60 seconds, diffs findings into alert/recover transitions, and posts to Slack when a webhook is configured — so alerts fire while the console is running, without any extra cron.
 
+<ConsoleShot dark={alertsDark} light={alertsLight} alt="The alerts screen" caption="Alerts: current findings, the schema card with auto-heal, Slack webhook setup, and the event feed." />
+
 :::caution
 **Force schema sync is destructive**: it drops tables that exist only on the sync target, rebuilds mismatched tables, and refreshes the publication. The confirm text says so — read it.
 :::
 
 **Tables** — a schema browser scoped to your selected working branch: filterable table list with heap-vs-index size bars, a detail pane with estimated rows, sizes, and columns (type, nullability, default, primary-key badge), a 50-row preview grid, and an "Open in SQL editor" shortcut.
 
+<ConsoleShot dark={tablesDark} light={tablesLight} alt="The schema browser" caption="Tables: size bars, column details, and a 50-row preview — scoped to the working branch." />
+
 **SQL Editor** — branch-scoped. Run with ⌘↵/Ctrl+↵; your draft persists across reloads; a history sidebar keeps the last 20 statements. Results show row count, duration, and the command tag, with a warning when output is truncated at 1,000 rows. Postgres errors render with the character position and SQLSTATE code.
 
+<ConsoleShot dark={sqlDark} light={sqlLight} alt="The SQL editor" caption="The SQL editor running an aggregate on a branch: result grid, timing, and the history sidebar." />
+
 **Monitoring** — a per-branch performance snapshot, deliberately manual-refresh (polling would distort the very counters it reports): database size, cache hit ratio, connections by state, top queries by total time via `pg_stat_statements` (created on the clone on demand; degrades gracefully if unavailable), and table activity with a "SEQ" missing-index badge and dead-row bloat highlighting. Counters reset when the clone starts, so what you see is the branch's own workload footprint.
+
+<ConsoleShot dark={monitoringDark} light={monitoringLight} alt="The monitoring screen" caption="Monitoring: database size, cache hit ratio, connections, and top queries for one branch." />
 
 ### `tendb console` vs `tendb ui`
 

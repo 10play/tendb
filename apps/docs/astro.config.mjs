@@ -41,7 +41,14 @@ export default defineConfig({
       title: 'tendb',
       description:
         'Neon-style Postgres branching on your own AWS account, powered by DBLab Engine.',
-      logo: { src: './src/assets/tendb-mark.svg', alt: 'tendb' },
+      // The console's lockup (10play mark + ten·db, green accent) — the SVG
+      // carries the wordmark, so it replaces the text title.
+      logo: {
+        light: './src/assets/tendb-logo-light.svg',
+        dark: './src/assets/tendb-logo-dark.svg',
+        alt: 'tendb',
+        replacesTitle: true,
+      },
       favicon: '/favicon.svg',
       components: {
         Footer: './src/components/Footer.astro',
@@ -59,7 +66,7 @@ export default defineConfig({
           label: 'Start here',
           items: [
             { label: 'What is tendb?', slug: 'getting-started/introduction' },
-            { label: 'Quickstart', slug: 'getting-started/quickstart' },
+            { label: 'AWS quickstart', slug: 'getting-started/quickstart' },
             { label: 'Local quickstart', slug: 'getting-started/local-quickstart' },
           ],
         },
