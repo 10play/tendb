@@ -3,7 +3,7 @@
     <source media="(prefers-color-scheme: dark)" srcset="apps/docs/src/assets/brand/tendb-lockup-dark.png">
     <img src="apps/docs/src/assets/brand/tendb-lockup-light.png" alt="tendb" width="210">
   </picture>
-  <p><strong>Neon-style Postgres branching on infrastructure you own.</strong><br>
+  <p><strong>The self-hosted Neon alternative — database branching for Postgres, on infrastructure you own.</strong><br>
   Copy-on-write branches of your real database — AWS, GCP, Azure, or your laptop's Docker — ready in seconds.</p>
   <p>
     <a href="https://www.npmjs.com/package/@10play/tendb"><img src="https://img.shields.io/npm/v/%4010play%2Ftendb?color=00a06f&label=npm" alt="npm version"></a>

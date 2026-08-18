@@ -1,7 +1,23 @@
 {
   "name": "@10play/tendb",
   "version": "0.1.0",
-  "description": "Neon-style Postgres branching: CLI + local console for DBLab (Database Lab Engine), reachable over AWS SSM",
+  "description": "Self-hosted Neon alternative — database branching for Postgres on infrastructure you own. CLI + web console for DBLab Engine on AWS, GCP, Azure, or local Docker.",
+  "keywords": [
+    "postgres",
+    "postgresql",
+    "database-branching",
+    "neon",
+    "neon-alternative",
+    "self-hosted",
+    "dblab",
+    "database-lab-engine",
+    "preview-environments",
+    "preview-databases",
+    "copy-on-write",
+    "ci",
+    "terraform",
+    "aws"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

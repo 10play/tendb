@@ -3,9 +3,10 @@ title: What is tendb?
 description: Why tendb exists, the one-paragraph mental model, who it is for, and when not to use it.
 ---
 
-tendb gives every developer and every pull request its own writable copy of
-your real Postgres database — in seconds, on an EC2 host in your own AWS
-account.
+tendb is a self-hosted Neon alternative: database branching for Postgres, on
+infrastructure you own. It gives every developer and every pull request its
+own writable copy of your real Postgres database — in seconds, on an EC2 host
+in your own AWS account.
 
 ## The problem
 

@@ -18,12 +18,28 @@ import Default from '@astrojs/starlight/components/Footer.astro';
     </svg>
     <span>10play</span>
   </a>
+  <span class="dot" aria-hidden="true">·</span>
+  <a href={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/llms.txt`} rel="noopener">llms.txt</a>
 </div>
 
 <style>
   .built-by {
     justify-content: center;
+    align-items: center;
+    gap: 0.5em;
     margin-top: 1rem;
+  }
+  .built-by .dot {
+    color: var(--sl-color-gray-4);
+    font-size: var(--sl-text-xs);
+  }
+  .built-by > a:not(:has(svg)) {
+    font-size: var(--sl-text-xs);
+    text-decoration: none;
+    color: var(--sl-color-gray-3);
+  }
+  .built-by > a:not(:has(svg)):hover {
+    color: var(--sl-color-white);
   }
   .built-by a {
     display: inline-flex;
