@@ -13,7 +13,7 @@
   "type": "module",
   "packageManager": "pnpm@9.15.4",
   "bin": {
-    "tendb": "./dist/index.js"
+    "tendb": "dist/index.js"
   },
   "exports": {
     ".": {
