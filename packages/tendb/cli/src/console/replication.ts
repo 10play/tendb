@@ -39,6 +39,8 @@ export interface PublisherStatus {
   peers?: PublisherPeer[];
   /** table name → column fingerprint; present when schema collection was asked for. */
   tables?: Record<string, string>;
+  /** table name → index fingerprint (constraint-backed indexes excluded). */
+  indexes?: Record<string, string>;
 }
 
 export interface SubscriberSubscription {
@@ -58,6 +60,8 @@ export interface SubscriberStatus {
   subscriptions?: SubscriberSubscription[];
   /** table name → column fingerprint; present when schema collection was asked for. */
   tables?: Record<string, string>;
+  /** table name → index fingerprint (constraint-backed indexes excluded). */
+  indexes?: Record<string, string>;
 }
 
 /**
@@ -72,18 +76,28 @@ export interface SchemaDiff {
   orphaned: string[];
   /** Same table, different columns/types. */
   mismatched: string[];
+  /** Same table and columns, different (non-constraint) indexes. */
+  indexesDiffer: string[];
 }
 
 export function diffSchemas(
   publisher: Record<string, string>,
   subscriber: Record<string, string>,
+  publisherIndexes: Record<string, string> = {},
+  subscriberIndexes: Record<string, string> = {},
 ): SchemaDiff {
   const missing = Object.keys(publisher).filter((t) => !(t in subscriber)).sort();
   const orphaned = Object.keys(subscriber).filter((t) => !(t in publisher)).sort();
   const mismatched = Object.keys(publisher)
     .filter((t) => t in subscriber && publisher[t] !== subscriber[t])
     .sort();
-  return { missing, orphaned, mismatched };
+  // Only tables present on both sides — missing/orphaned already cover the
+  // rest, and a table with no rows in the index map simply has no indexes.
+  const indexesDiffer = Object.keys(publisher)
+    .filter((t) => t in subscriber)
+    .filter((t) => (publisherIndexes[t] ?? "") !== (subscriberIndexes[t] ?? ""))
+    .sort();
+  return { missing, orphaned, mismatched, indexesDiffer };
 }
 
 const SCHEMA_FINGERPRINT_SQL = `
@@ -93,6 +107,21 @@ const SCHEMA_FINGERPRINT_SQL = `
   from information_schema.columns
   where table_schema = 'public'
   group by table_name`;
+
+// Constraint-backed indexes (PK/UNIQUE) are excluded to mirror what the
+// snapshotd daemon can heal — a later-added PK still surfaces as column
+// drift via its NOT NULL.
+const INDEX_FINGERPRINT_SQL = `
+  select i.tablename as table_name,
+         md5(string_agg(i.indexdef, ',' order by i.indexname)) as fp
+  from pg_indexes i
+  where i.schemaname = 'public'
+    and not exists (
+      select 1 from pg_constraint con
+      join pg_class ic on ic.oid = con.conindid
+      join pg_namespace nsp on nsp.oid = ic.relnamespace
+      where ic.relname = i.indexname and nsp.nspname = i.schemaname)
+  group by i.tablename`;
 
 export interface ReplicationStatus {
   configured: boolean;
@@ -172,7 +201,7 @@ function poolFor(url: string): pg.Pool {
 async function queryPublisher(url: string, includeSchema: boolean): Promise<PublisherStatus> {
   const pool = poolFor(url);
   try {
-    const [lsn, slots, peers, schema] = await Promise.all([
+    const [lsn, slots, peers, schema, indexes] = await Promise.all([
       pool.query(`select pg_current_wal_lsn()::text as lsn`),
       pool.query(`
         select slot_name, active,
@@ -187,9 +216,11 @@ async function queryPublisher(url: string, includeSchema: boolean): Promise<Publ
                (extract(epoch from replay_lag) * 1000)::float8 as replay_lag_ms
         from pg_stat_replication`),
       includeSchema ? pool.query(SCHEMA_FINGERPRINT_SQL) : Promise.resolve(null),
+      includeSchema ? pool.query(INDEX_FINGERPRINT_SQL) : Promise.resolve(null),
     ]);
     const status = normalizePublisher(lsn.rows[0], slots.rows, peers.rows);
     if (schema) status.tables = tableMap(schema.rows);
+    if (indexes) status.indexes = tableMap(indexes.rows);
     return status;
   } catch (err) {
     return { connected: false, error: (err as Error).message };
@@ -209,7 +240,7 @@ async function querySubscriber(url: string, includeSchema: boolean): Promise<Sub
   try {
     // Columns listed explicitly: pg_subscription.subconninfo is superuser-only
     // and a bare * would fail. stat.relid is null on the main apply worker.
-    const [subs, schema] = await Promise.all([
+    const [subs, schema, indexes] = await Promise.all([
       pool.query(`
       select sub.subname, sub.subenabled,
              stat.received_lsn::text as received_lsn,
@@ -223,9 +254,11 @@ async function querySubscriber(url: string, includeSchema: boolean): Promise<Sub
         on stat.subid = sub.oid and stat.relid is null
       left join pg_stat_subscription_stats errs on errs.subid = sub.oid`),
       includeSchema ? pool.query(SCHEMA_FINGERPRINT_SQL) : Promise.resolve(null),
+      includeSchema ? pool.query(INDEX_FINGERPRINT_SQL) : Promise.resolve(null),
     ]);
     const status = normalizeSubscriber(subs.rows);
     if (schema) status.tables = tableMap(schema.rows);
+    if (indexes) status.indexes = tableMap(indexes.rows);
     return status;
   } catch (err) {
     return { connected: false, error: (err as Error).message };

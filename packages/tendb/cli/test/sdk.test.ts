@@ -181,6 +181,26 @@ describe("schema sync config", () => {
       missing: ["a"],
       orphaned: ["d"],
       mismatched: ["c"],
+      indexesDiffer: [],
+    });
+  });
+
+  it("diffSchemas reports index drift only for tables present on both sides", async () => {
+    const { diffSchemas } = await import("../src/console/replication.js");
+    // b: index fp differs · c: index only upstream · missing/orphaned tables
+    // excluded even though their index maps disagree too.
+    expect(
+      diffSchemas(
+        { a: "1", b: "2", c: "3" },
+        { b: "2", c: "3", d: "4" },
+        { a: "i1", b: "i2", c: "i3" },
+        { b: "OTHER", d: "i4" },
+      ),
+    ).toEqual({
+      missing: ["a"],
+      orphaned: ["d"],
+      mismatched: [],
+      indexesDiffer: ["b", "c"],
     });
   });
 });

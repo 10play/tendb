@@ -25,7 +25,8 @@ export function registerSchema(program: Command): void {
       const drift = await withSession(cmd, async (session) =>
         schemaDrift(await resolveReplicationUrls(session)),
       );
-      const drifted = drift.missing.length + drift.orphaned.length + drift.mismatched.length > 0;
+      const drifted =
+        drift.missing.length + drift.orphaned.length + drift.mismatched.length + drift.indexesDiffer.length > 0;
       if (globalOpts(cmd).output === "json") printJson({ ...drift, inSync: !drifted });
       else if (!drifted) printTable(["", ""], [["schema", "in sync"]]);
       else {
@@ -35,6 +36,7 @@ export function registerSchema(program: Command): void {
             ["missing on sync target", drift.missing.join(", ") || "-"],
             ["only on sync target", drift.orphaned.join(", ") || "-"],
             ["columns differ", drift.mismatched.join(", ") || "-"],
+            ["indexes differ", drift.indexesDiffer.join(", ") || "-"],
           ],
         );
       }
@@ -43,7 +45,7 @@ export function registerSchema(program: Command): void {
 
   schema
     .command("sync")
-    .description("full reconcile via the engine host (creates missing tables, DROPS orphans)")
+    .description("full reconcile via the engine host (creates missing tables/columns/indexes, DROPS orphans)")
     .action(async (_opts: unknown, cmd: Command) => {
       const started = Date.now();
       await withSession(cmd, async (session) =>
