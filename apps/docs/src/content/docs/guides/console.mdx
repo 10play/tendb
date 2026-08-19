@@ -72,19 +72,19 @@ The app shell shows the environment name, transport badge (SSM or DIRECT), datab
 
 The New branch dialog validates the name (`[a-z0-9][a-z0-9-]{0,62}`), lets you pick a base branch, and — on streaming deployments, when branching from `main` — offers **"Start from the latest data"**, which snapshots the live sync target first so the branch is main *as of now*. On success it shows the connection URI, state, and port. In streaming mode the live `main` row gets Connect only: it is not a clone, so there is no reset or delete.
 
-**Snapshots** — cards for sync status, disk (with warning tones above 80% and danger above 92%), data state, and upstream replication (stream health, slot state, lag bytes, apply/sync error counters). On streaming deployments you also get a **Snapshot now** button (an O(1) ZFS snapshot — around ten seconds regardless of database size) and a **snapshot schedule** card — interval choices from manual to daily, retention 1–500 — saved to SSM and picked up by the engine host within seconds. On dump-mode deployments a **Refresh now** button triggers a full dump/restore refresh when the engine supports it. Below the cards, the snapshot table lists id, data state, age, and logical/physical sizes. See [Data refresh](/concepts/data-refresh/) for how the two sync modes differ.
+**Snapshots** — cards for sync status, disk (with warning tones above 80% and danger above 92%), data state, and upstream replication (stream health, slot state, lag bytes, WAL retained per slot, apply/sync error counters). On streaming deployments you also get a **Snapshot now** button (an O(1) ZFS snapshot — around ten seconds regardless of database size) and a **snapshot schedule** card — interval choices from manual to daily, retention 1–500 — saved to SSM and picked up by the engine host within seconds. On dump-mode deployments a **Refresh now** button triggers a full dump/restore refresh when the engine supports it. Below the cards, the snapshot table lists id, data state, age, and logical/physical sizes. See [Data refresh](/concepts/data-refresh/) for how the two sync modes differ.
 
 <ConsoleShot dark={snapshotsDark} light={snapshotsLight} alt="The snapshots screen" caption="Snapshots: sync, disk, and data-state cards over the snapshot table with per-branch ZFS sizes." />
 
 **Alerts** — current health findings with severity pills, plus:
 
-- **Schema card** (streaming): drift status, an **Auto-heal** toggle (the engine-host daemon creates missing tables on a ~1-minute cadence), and a **Force schema sync** button for a full reconcile.
+- **Schema card** (streaming): drift status and a **Force schema sync** button for a full reconcile — destructive (it drops tables removed upstream), so it asks you to type `approve` first. The auto-heal daemon toggle lives in the CLI: `tendb schema config --auto-sync on|off`.
 - **Slack card**: save an incoming-webhook URL (stored encrypted in SSM), clear it, or send a test message.
 - **Event feed**: alert/recover transitions, newest first, up to 200 events.
 
 The console server itself runs the health check every 60 seconds, diffs findings into alert/recover transitions, and posts to Slack when a webhook is configured — so alerts fire while the console is running, without any extra cron.
 
-<ConsoleShot dark={alertsDark} light={alertsLight} alt="The alerts screen" caption="Alerts: current findings, the schema card with auto-heal, Slack webhook setup, and the event feed." />
+<ConsoleShot dark={alertsDark} light={alertsLight} alt="The alerts screen" caption="Alerts: current findings, the schema card, Slack webhook setup, and the event feed." />
 
 :::caution
 **Force schema sync is destructive**: it drops tables that exist only on the sync target, rebuilds mismatched tables, and refreshes the publication. The confirm text says so — read it.
