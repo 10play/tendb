@@ -1,0 +1,28 @@
+# tendb
+
+> tendb is a self-hosted Neon replacement: database branching for Postgres, running entirely on infrastructure you own. Each developer and each pull request gets a real, writable copy-on-write branch of your production-shaped Postgres database in seconds, backed by ZFS thin clones via DBLab Engine on a single host — an EC2 instance in your AWS account, a GCP or Azure VM, or Docker on your laptop.
+
+Key facts:
+
+- tendb is self-hosted infrastructure, not a managed service. Data, host, and tunnels stay inside your own cloud account/VPC; the host has no SSH and no inbound internet, and clients connect through each platform's native tunnel (SSM on AWS, IAP on GCP, Bastion on Azure, loopback locally).
+- It brings the Neon-style branching workflow to any source Postgres — Aurora, RDS, Neon itself, or any `postgres://` URL — by syncing data to the host (nightly dump/restore or logical replication) and serving each branch as a ZFS copy-on-write clone on its own port.
+- Install with `npx @10play/tendb init` (scaffolds Terraform + config), then `tendb up`. Day-to-day commands: `tendb branches create <name>`, `tendb psql <name>`, `tendb console`, `tendb ci ensure <pr>`.
+- Branches are for development, CI preview databases, and migration rehearsal — not production. There is no autoscaling, PITR, HA, or public endpoint; production keeps running wherever it already runs.
+
+## Documentation Sets
+
+- [Abridged documentation](https://10play.github.io/tendb/llms-small.txt): a compact version of the documentation for tendb, with non-essential content removed
+- [Complete documentation](https://10play.github.io/tendb/llms-full.txt): the full documentation for tendb
+- [Reference](https://10play.github.io/tendb/_llms-txt/reference.txt): Complete reference for the CLI, configuration file, engine contract, snapshot daemon, and Terraform modules
+- [Getting started](https://10play.github.io/tendb/_llms-txt/getting-started.txt): Introduction plus the AWS and local (Docker) quickstarts
+
+## Notes
+
+- The complete documentation includes all content from the official documentation
+- The content is automatically generated from the same source as the official documentation
+
+## Optional
+
+- [GitHub repository](https://github.com/10play/tendb): Source code, issues, and the runnable example app
+- [DBLab Engine](https://github.com/postgres-ai/database-lab-engine): The thin-cloning engine tendb builds on
+- [10play](https://10play.dev): The company behind tendb

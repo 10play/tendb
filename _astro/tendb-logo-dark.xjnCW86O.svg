@@ -1,0 +1,9 @@
+<svg viewBox="0 0 76 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="tendb">
+  <!-- The console lockup (see cli/console/src/components/TenDBLogo.tsx): the
+       10play mark + "ten" in ink, "db" in the accent green. Dark-bg variant. -->
+  <path transform="translate(0 2)" fill="#ebebeb"
+    d="m13.153 10.682-2.343 3.91c-1.167 1.949.233 4.43 2.5 4.43h4.687c2.268 0 3.668-2.481 2.5-4.43l-2.342-3.91c-1.133-1.891-3.868-1.891-5 0zM1.705 18.427C.075 17.52-.484 15.513.457 13.943L7.27 2.57C8.213.999 10.3.46 11.933 1.368c1.63.907 2.189 2.914 1.248 4.485l-6.814 11.37c-.942 1.573-3.03 2.112-4.662 1.204"/>
+  <text x="27" y="19.5" font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    font-size="17" font-weight="600" letter-spacing="-0.3" fill="#ebebeb">ten<tspan
+    font-size="13" fill="#00e599">db</tspan></text>
+</svg>

@@ -1,0 +1,327 @@
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-rf4ifhtz"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>tendb vs Neon | tendb</title><link rel="canonical" href="https://10play.github.io/tendb/comparison/neon-parity/"/><link rel="sitemap" href="/tendb/sitemap-index.xml"/><link rel="shortcut icon" href="/tendb/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.2.2"/><meta name="generator" content="Starlight v0.41.7"/><meta property="og:title" content="tendb vs Neon"/><meta property="og:type" content="article"/><meta property="og:url" content="https://10play.github.io/tendb/comparison/neon-parity/"/><meta property="og:locale" content="en"/><meta property="og:description" content="An honest feature-parity comparison between Neon branching and tendb's self-hosted branch databases."/><meta property="og:site_name" content="tendb"/><meta name="twitter:card" content="summary_large_image"/><meta name="description" content="An honest feature-parity comparison between Neon branching and tendb's self-hosted branch databases."/><script>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/tendb/_astro/print.ehPL0gv-.css" media="print"><link rel="stylesheet" href="/tendb/_astro/common.PW1mb7t8.css"><style>@layer starlight.components{.card-grid:where(.astro-o76mbyrd){grid-template-columns:100%;gap:1rem;display:grid}.card-grid:where(.astro-o76mbyrd)>*{margin-top:0!important}@media (width>=50rem){.card-grid:where(.astro-o76mbyrd){grid-template-columns:1fr 1fr;gap:1.5rem}.stagger:where(.astro-o76mbyrd){--stagger-height:5rem;padding-bottom:var(--stagger-height)}.stagger:where(.astro-o76mbyrd)>:nth-child(2n){transform:translateY(var(--stagger-height))}}}
+@layer starlight.components{.card:where(.astro-iuq5fkb7){--sl-card-border:var(--sl-color-purple);--sl-card-bg:var(--sl-color-purple-low);border:1px solid var(--sl-color-gray-5);background-color:var(--sl-color-black);flex-direction:column;gap:clamp(.5rem,.125rem + 1vw,1rem);padding:clamp(1rem,.125rem + 3vw,2.5rem)}.card:where(.astro-iuq5fkb7):nth-child(4n+1){--sl-card-border:var(--sl-color-orange);--sl-card-bg:var(--sl-color-orange-low)}.card:where(.astro-iuq5fkb7):nth-child(4n+3){--sl-card-border:var(--sl-color-green);--sl-card-bg:var(--sl-color-green-low)}.card:where(.astro-iuq5fkb7):nth-child(4n+4){--sl-card-border:var(--sl-color-red);--sl-card-bg:var(--sl-color-red-low)}.card:where(.astro-iuq5fkb7):nth-child(4n+5){--sl-card-border:var(--sl-color-blue);--sl-card-bg:var(--sl-color-blue-low)}.title:where(.astro-iuq5fkb7){font-weight:600;font-size:var(--sl-text-h4);color:var(--sl-color-white);line-height:var(--sl-line-height-headings);align-items:center;gap:1rem}.card:where(.astro-iuq5fkb7) .icon:where(.astro-iuq5fkb7){border:1px solid var(--sl-card-border);background-color:var(--sl-card-bg);border-radius:.25rem;flex-shrink:0;padding:.2em}.card:where(.astro-iuq5fkb7) .body:where(.astro-iuq5fkb7){font-size:clamp(var(--sl-text-sm), calc(.5rem + 1vw), var(--sl-text-body));margin:0}}
+@layer starlight.components{svg:where(.astro-jc46bh2q){color:var(--sl-icon-color);font-size:var(--sl-icon-size,1em);width:1em;height:1em}}
+@layer starlight.components{starlight-tabs:where(.astro-uwk5kjn7){display:block}.tablist-wrapper:where(.astro-uwk5kjn7){overflow-x:auto}:where(.astro-uwk5kjn7)[role=tablist]{border-bottom:2px solid var(--sl-color-gray-5);padding:0;list-style:none;display:flex}.tab:where(.astro-uwk5kjn7){display:flex}.tab:where(.astro-uwk5kjn7)>:where(.astro-uwk5kjn7)[role=tab]{--sl-tab-color-border:var(--sl-color-gray-5);line-height:var(--sl-line-height-headings);box-shadow:0 2px 0 var(--sl-tab-color-border);color:var(--sl-color-gray-3);outline-offset:var(--sl-outline-offset-inside);overflow-wrap:initial;align-items:center;gap:.5rem;padding:.275rem 1.25rem;text-decoration:none;display:flex}.tab:where(.astro-uwk5kjn7) :where(.astro-uwk5kjn7)[role=tab][aria-selected=true]{--sl-tab-color-border:var(--sl-color-text-accent);color:var(--sl-color-white);font-weight:600}.tablist-wrapper:where(.astro-uwk5kjn7)~[role=tabpanel]{margin-top:1rem}}
+@layer starlight.components{.sl-link-card:where(.astro-jpsdbrh3){border:1px solid var(--sl-color-gray-5);box-shadow:var(--sl-shadow-sm);border-radius:.5rem;grid-template-columns:1fr auto;gap:.5rem;padding:1rem;display:grid;position:relative}a:where(.astro-jpsdbrh3){line-height:var(--sl-line-height-headings);text-decoration:none}a:where(.astro-jpsdbrh3):before{content:"";position:absolute;inset:0}.stack:where(.astro-jpsdbrh3){flex-direction:column;gap:.5rem}.title:where(.astro-jpsdbrh3){color:var(--sl-color-white);font-weight:600;font-size:var(--sl-text-lg)}.description:where(.astro-jpsdbrh3){color:var(--sl-color-gray-3);line-height:1.5}.icon:where(.astro-jpsdbrh3){color:var(--sl-color-gray-3)}.sl-link-card:where(.astro-jpsdbrh3):hover{background:var(--sl-color-gray-7,var(--sl-color-gray-6));border-color:var(--sl-color-gray-2)}.sl-link-card:where(.astro-jpsdbrh3):hover .icon:where(.astro-jpsdbrh3){color:var(--sl-color-white)}.sl-steps{--bullet-size:calc(var(--sl-line-height) * 1rem);--bullet-margin:.375rem;counter-reset:steps-counter var(--sl-steps-start,0);padding-inline-start:0;list-style:none}.sl-steps>li{counter-increment:steps-counter;padding-inline-start:calc(var(--bullet-size) + 1rem);min-height:calc(var(--bullet-size) + var(--bullet-margin));padding-bottom:1px;position:relative}.sl-steps>li+li{margin-top:0}.sl-steps>li:before{content:counter(steps-counter);top:0;width:var(--bullet-size);height:var(--bullet-size);line-height:var(--bullet-size);font-size:var(--sl-text-xs);text-align:center;color:var(--sl-color-white);background-color:var(--sl-color-gray-6);box-shadow:inset 0 0 0 1px var(--sl-color-gray-5);border-radius:99rem;font-weight:600;position:absolute;inset-inline-start:0}.sl-steps>li:after{--guide-width:1px;content:"";top:calc(var(--bullet-size) + var(--bullet-margin));bottom:var(--bullet-margin);width:var(--guide-width);background-color:var(--sl-color-hairline-light);position:absolute;inset-inline-start:calc((var(--bullet-size) - var(--guide-width)) / 2)}}@layer starlight.content{.sl-steps>li>:first-child{--lh:calc(1em * var(--sl-line-height));--shift-y:calc(.5 * (var(--bullet-size) - var(--lh)));transform:translateY(var(--shift-y));margin-bottom:var(--shift-y)}.sl-steps>li>:first-child:where(h1,h2,h3,h4,h5,h6){--lh:calc(1em * var(--sl-line-height-headings))}@supports (--prop:1lh){.sl-steps>li>:first-child{--lh:1lh}}}
+</style><script type="module" src="/tendb/_astro/page.Dwipeu-R.js"></script></head><body class="astro-rf4ifhtz"><a class="sl-skip-link astro-5mdqhp27" href="#_top">Skip to content</a><div class="page sl-flex astro-3dl5vedh"><header class="header astro-3dl5vedh"><div class="header astro-e3el5juu"><div class="title-wrapper sl-flex astro-e3el5juu"><a href="/tendb/" class="site-title sl-flex astro-pm4m6a7f"><img class="light:sl-hidden print:hidden astro-pm4m6a7f" alt="tendb" src="/tendb/_astro/tendb-logo-dark.xjnCW86O.svg" width="76" height="24"><img class="dark:sl-hidden print:block astro-pm4m6a7f" alt="tendb" src="/tendb/_astro/tendb-logo-light.D6C4lrkS.svg" width="76" height="24"><span class="sr-only astro-pm4m6a7f" translate="no">tendb</span></a></div><div class="sl-flex print:hidden astro-e3el5juu"><site-search class="astro-e3el5juu astro-wzw662ow" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-wzw662ow"><svg aria-hidden="true" class="astro-wzw662ow astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-wzw662ow" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-wzw662ow" style="display: none;"><kbd class="astro-wzw662ow">Ctrl</kbd><kbd class="astro-wzw662ow">K</kbd></kbd></button><dialog style="padding:0" aria-label="Search" class="astro-wzw662ow"><div class="dialog-frame sl-flex astro-wzw662ow"><button data-close-modal class="sl-flex md:sl-hidden astro-wzw662ow">Cancel</button><div class="search-container astro-wzw662ow"><div id="starlight__search" class="astro-wzw662ow"></div></div></div></dialog></site-search><script>
+	(() => {
+		const openBtn = document.querySelector('button[data-open-modal]');
+		const shortcut = openBtn?.querySelector('kbd');
+		if (!openBtn || !(shortcut instanceof HTMLElement)) return;
+		const platformKey = shortcut.querySelector('kbd');
+		if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+			platformKey.textContent = '⌘';
+			openBtn.setAttribute('aria-keyshortcuts', 'Meta+K');
+		}
+		shortcut.style.display = '';
+	})();
+</script><script type="module" src="/tendb/_astro/Search.astro_astro_type_script_index_0_lang.7qPUx3RX.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-e3el5juu"><div class="sl-flex social-icons astro-e3el5juu"><a href="https://github.com/10play/tendb" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">GitHub</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a><a href="https://10play.dev" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">10play</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M19.33 10.18a1 1 0 0 1-.77 0 1 1 0 0 1-.62-.93l.01-1.83-8.2 8.2a1 1 0 0 1-1.41-1.42l8.2-8.2H14.7a1 1 0 0 1 0-2h4.25a1 1 0 0 1 1 1v4.25a1 1 0 0 1-.62.93Z"/><path d="M11 4a1 1 0 1 1 0 2H7a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4a1 1 0 1 1 2 0v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-7qoap3rh"><span class="sr-only astro-7qoap3rh">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-7qoap3rh"><option value="dark" class="astro-7qoap3rh">Dark</option><option value="light" class="astro-7qoap3rh">Light</option><option value="auto" selected class="astro-7qoap3rh">Auto</option></select><svg aria-hidden="true" class="icon caret astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-3dl5vedh" aria-label="Main"><starlight-menu-button class="print:hidden astro-rf4inbel"><button aria-expanded="false" aria-label="Menu" aria-controls="starlight__sidebar" class="sl-flex md:sl-hidden astro-rf4inbel"><svg aria-hidden="true" class="open-menu astro-rf4inbel astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-rf4inbel astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg></button></starlight-menu-button><script type="module">var e=class extends HTMLElement{btn=this.querySelector(`button`);constructor(){super(),this.btn.addEventListener(`click`,()=>this.toggleExpanded());let e=this.closest(`nav`);e&&e.addEventListener(`keyup`,e=>this.closeOnEscape(e)),matchMedia(`(min-width: 50em)`).addEventListener(`change`,()=>this.setExpanded(!1))}setExpanded(e){this.setAttribute(`aria-expanded`,String(e)),document.body.toggleAttribute(`data-mobile-menu-expanded`,e),document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}toggleExpanded(){this.setExpanded(this.getAttribute(`aria-expanded`)!==`true`)}closeOnEscape(e){e.code===`Escape`&&(this.setExpanded(!1),this.btn.focus())}};customElements.define(`starlight-menu-button`,e);</script><div id="starlight__sidebar" class="sidebar-pane astro-3dl5vedh"><div class="sidebar-content sl-flex astro-3dl5vedh"><sl-sidebar-state-persist data-hash="1vzh0xa" class="astro-3inv6tqz"><script aria-hidden="true">
+		(() => {
+			try {
+				if (!matchMedia('(min-width: 50em)').matches) return;
+				/** @type {HTMLElement | null} */
+				const target = document.querySelector('sl-sidebar-state-persist');
+				const state = JSON.parse(sessionStorage.getItem('sl-sidebar-state') || '0');
+				if (!target || !state || target.dataset.hash !== state.hash) return;
+				window._starlightScrollRestore = state.scroll;
+				customElements.define(
+					'sl-sidebar-restore',
+					class SidebarRestore extends HTMLElement {
+						connectedCallback() {
+							try {
+								const idx = parseInt(this.dataset.index || '');
+								const details = this.closest('details');
+								if (details && typeof state.open[idx] === 'boolean') details.open = state.open[idx];
+							} catch {}
+						}
+					}
+				);
+			} catch {}
+		})();
+	</script><ul class="top-level astro-hwxxo6g3"><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Start here</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="0"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/getting-started/introduction/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">What is tendb?</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/getting-started/quickstart/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">AWS quickstart</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/getting-started/local-quickstart/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Local quickstart</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">How it works</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="1"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/concepts/architecture/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Architecture</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/concepts/platforms/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Platforms</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/concepts/security/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Security model</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/concepts/data-refresh/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Data refresh lifecycle</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Guides</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="2"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/guides/ci-previews/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">CI preview environments</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/console/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">The web console</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/operations/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Operations &amp; troubleshooting</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/gcp/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Platform: GCP</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/azure/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Platform: Azure</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Reference</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="3"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/reference/cli/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">CLI commands</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/configuration/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Configuration</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/engine-contract/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">The engine contract</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/snapshotd/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">tendb-snapshotd</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/terraform-engine/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Terraform: engine module</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/terraform-network/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Terraform: network &amp; console</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Comparison</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="4"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/comparison/neon-parity/" aria-current="page" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Neon parity</span></a></li></ul></details></li></ul><script aria-hidden="true">
+		(() => {
+			const scroller = document.getElementById('starlight__sidebar');
+			if (!window._starlightScrollRestore || !scroller) return;
+			scroller.scrollTop = window._starlightScrollRestore;
+			delete window._starlightScrollRestore;
+		})();
+	</script></sl-sidebar-state-persist><div class="md:sl-hidden"><div class="mobile-preferences sl-flex astro-qneda7fs"><div class="social-icons astro-qneda7fs"><a href="https://github.com/10play/tendb" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">GitHub</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a><a href="https://10play.dev" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">10play</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M19.33 10.18a1 1 0 0 1-.77 0 1 1 0 0 1-.62-.93l.01-1.83-8.2 8.2a1 1 0 0 1-1.41-1.42l8.2-8.2H14.7a1 1 0 0 1 0-2h4.25a1 1 0 0 1 1 1v4.25a1 1 0 0 1-.62.93Z"/><path d="M11 4a1 1 0 1 1 0 2H7a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4a1 1 0 1 1 2 0v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-7qoap3rh"><span class="sr-only astro-7qoap3rh">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-7qoap3rh"><option value="dark" class="astro-7qoap3rh">Dark</option><option value="light" class="astro-7qoap3rh">Light</option><option value="auto" selected class="astro-7qoap3rh">Auto</option></select><svg aria-hidden="true" class="icon caret astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script></div></div></div></div></nav><div class="main-frame astro-3dl5vedh"><script type="module">var e=document.getElementById(`starlight__sidebar`),t=e?.querySelector(`sl-sidebar-state-persist`),n=`sl-sidebar-state`,r=()=>{let r=[],i=t?.dataset.hash||``;try{let e=sessionStorage.getItem(n),t=JSON.parse(e||`{}`);Array.isArray(t.open)&&t.hash===i&&(r=t.open)}catch{}return{hash:i,open:r,scroll:e?.scrollTop||0}},i=e=>{try{sessionStorage.setItem(n,JSON.stringify(e))}catch{}},a=()=>i(r()),o=(e,t)=>{let n=r();n.open[t]=e,i(n)};t?.addEventListener(`click`,e=>{if(!(e.target instanceof Element))return;let t=e.target.closest(`summary`)?.closest(`details`);if(!t)return;let n=t.querySelector(`sl-sidebar-restore`),r=parseInt(n?.dataset.index||``);isNaN(r)||o(!t.open,r)}),addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`&&a()});</script><div class="lg:sl-flex astro-oiv6ttks"><aside class="right-sidebar-container print:hidden astro-oiv6ttks"><div class="right-sidebar astro-oiv6ttks"><div class="lg:sl-hidden astro-6yaqbhlx"><mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-4tsgki3g"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-4tsgki3g"><details id="starlight__mobile-toc" class="astro-4tsgki3g"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-4tsgki3g"><span class="toggle sl-flex astro-4tsgki3g">On this page<svg aria-hidden="true" class="caret astro-4tsgki3g astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-4tsgki3g"></span></summary><div class="dropdown astro-4tsgki3g"><ul class="isMobile astro-qgklxlrx" style="--depth: 0;"><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#_top" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Overview</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#feature-parity-table" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Feature parity table</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#when-to-pick-which" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">When to pick which</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#neonctl--tendb-translation" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">neonctl → tendb translation</span></a></li></ul></div></details></nav></mobile-starlight-toc><script type="module" src="/tendb/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.BcSo_yiZ.js"></script></div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-6yaqbhlx"><div class="sl-container astro-6yaqbhlx"><starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-qgklxlrx" style="--depth: 0;"><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#_top" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Overview</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#feature-parity-table" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Feature parity table</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#when-to-pick-which" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">When to pick which</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#neonctl--tendb-translation" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">neonctl → tendb translation</span></a></li></ul></nav></starlight-toc><script type="module" src="/tendb/_astro/TableOfContents.astro_astro_type_script_index_0_lang.Csloo1VZ.js"></script></div></div></div></aside><div class="main-pane astro-oiv6ttks"><main data-pagefind-body class="astro-rf4ifhtz" lang="en" dir="ltr"><div class="content-panel astro-sub65yiv"><div class="sl-container astro-sub65yiv"><h1 id="_top" class="astro-75kuhzsi">tendb vs Neon</h1></div></div><div class="content-panel astro-sub65yiv"><div class="sl-container astro-sub65yiv"><div class="sl-markdown-content"><p>If you use Neon for branch-per-PR development, tendb gives you the same day-to-day workflow — instant copy-on-write branches, a connection string per branch, a CLI, a web console, and a CI contract — running on a single EC2 host in <strong>your own AWS account</strong>, powered by <a href="https://postgres.ai/products/how-it-works">DBLab Engine</a> (ZFS thin clones). The fundamental difference: Neon is managed serverless Postgres where branches fork the live parent at the instant you create them; tendb is a self-hosted clone host that <strong>syncs from a source database</strong> (Neon, Aurora, RDS, any Postgres URL) and branches from the last sync, not from live production. Your source stays wherever it is — tendb can even use a Neon production database as its source.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="feature-parity-table">Feature parity table</h2><a class="sl-anchor-link" href="#feature-parity-table"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Feature parity table”</span></a></div>
+<p>Honest in both directions. tendb claims are grounded in the CLI and console source; Neon claims reflect Neon’s documented product as of mid-2026 — check <a href="https://neon.com/docs">neon.com/docs</a> for current plan limits.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Feature</th><th>Neon</th><th>tendb</th><th>Notes</th></tr></thead><tbody><tr><td>Branch create / delete / list</td><td>Yes (<code dir="auto">neonctl</code>, console, API)</td><td>Yes (<code dir="auto">tendb branches create|list|get|delete</code>, console, SDK)</td><td>tendb create is idempotent create-or-reuse; delete of an absent branch exits 0. Bare numbers are PR shorthand: <code dir="auto">42</code> → <code dir="auto">pr-42</code>.</td></tr><tr><td>Branch reset</td><td>Yes — <code dir="auto">neonctl branches reset &#x3C;branch> --parent</code> resets to the parent’s <strong>latest</strong> state</td><td>Yes — <code dir="auto">tendb branches reset &#x3C;name></code> discards writes, back to the branch’s <strong>own</strong> snapshot</td><td>Different semantics. To pick up newer data in tendb, delete and recreate the branch (optionally with <code dir="auto">--fresh</code>).</td></tr><tr><td>Branch-from-branch</td><td>Yes (<code dir="auto">--parent</code>)</td><td>Yes (<code dir="auto">--from &#x3C;branch></code>, default <code dir="auto">main</code>)</td><td><code dir="auto">--from</code> is honored only when the branch doesn’t already exist.</td></tr><tr><td>Time-to-branch</td><td>Seconds (storage-level copy-on-write)</td><td>Seconds (ZFS copy-on-write clone)</td><td>tendb footgun: right after first provisioning, the first branch waits for the first sync snapshot — up to 15 minutes.</td></tr><tr><td>Connection string per branch</td><td>Yes — public TLS endpoint per branch, pooled variant available</td><td>Yes — <code dir="auto">postgres://</code> URI per branch with stateless derived credentials</td><td>tendb URIs are in-VPC only: reachable from inside your VPC or through an SSM tunnel. No public endpoint, no TLS, by design.</td></tr><tr><td>psql access</td><td><code dir="auto">psql "$(neonctl connection-string my-branch)"</code> over the internet</td><td><code dir="auto">tendb psql my-branch</code> — opens an SSM tunnel automatically</td><td>No VPN or bastion needed; auth is your AWS IAM credentials.</td></tr><tr><td>CLI</td><td><code dir="auto">neonctl</code> (projects, branches, databases, roles, …)</td><td><code dir="auto">tendb</code> (branches, snapshots, schema, migrate, checkup, ci, console)</td><td>tendb has no project/org/role management — one engine is one implicit project with one database.</td></tr><tr><td>Web console</td><td>Full SaaS console (console.neon.tech)</td><td><code dir="auto">tendb console</code> — local dashboard: branches, snapshots, alerts, tables, SQL editor, per-branch monitoring</td><td>tendb’s console runs on your machine (or self-hosted behind an auth proxy); secrets never reach the browser.</td></tr><tr><td>CI previews</td><td>Official GitHub Actions, Vercel/Netlify integrations</td><td><code dir="auto">tendb ci ensure|url|delete</code> — a strict stdout contract you wire into any CI</td><td>No prebuilt Action shipped; the wiring is a few lines of workflow YAML. See <a href="/tendb/guides/ci-previews/">CI previews</a>.</td></tr><tr><td>Snapshots</td><td>Restore points across the history retention window, plus explicit snapshots</td><td>Explicit ZFS pool snapshots — scheduled or <code dir="auto">tendb snapshots create</code> (~10 s at any size)</td><td>tendb snapshots are the <em>only</em> available branch points. On-demand snapshots require the streaming deployment.</td></tr><tr><td>Schema diff</td><td><code dir="auto">neonctl branches schema-diff</code> — branch vs. branch</td><td><code dir="auto">tendb schema diff</code> — <strong>source vs. sync target drift only</strong></td><td>Not equivalent. tendb has no branch-to-branch schema diff; use your migration tool’s diff instead.</td></tr><tr><td>Scale-to-zero / autoscaling</td><td>Yes — computes suspend when idle and autoscale under load</td><td>No — all branches run on one fixed-size host</td><td>tendb capacity is a static port pool (e.g. 10 concurrent branches); exhaustion is a distinct exit code 42.</td></tr><tr><td>Point-in-time restore</td><td>Yes — branch or restore from any timestamp/LSN in the retention window (hours to weeks by plan)</td><td>No — no WAL archive, no arbitrary-timestamp branches</td><td>tendb branch points are exactly its snapshots. tendb is not a backup tool; keep your source’s own PITR.</td></tr><tr><td>Read replicas</td><td>Yes — read-only computes on a branch</td><td>No</td><td>Closest analog: in streaming mode, <code dir="auto">main</code> is a live read-only view of the sync target.</td></tr><tr><td>High availability</td><td>Managed — replicated storage, compute rescheduled on failure</td><td>No — single engine host</td><td>If the host dies, <code dir="auto">terraform apply</code> rebuilds it and it resyncs. Branches are disposable; your source database is never at risk.</td></tr><tr><td>Managed-ness</td><td>Fully managed SaaS</td><td>Self-hosted: Terraform-provisioned EC2, you operate it</td><td><code dir="auto">tendb checkup</code>, <code dir="auto">tendb status</code>, and console Slack alerts do the watching; you do the acting. See <a href="/tendb/guides/operations/">Operations</a>.</td></tr><tr><td>Data freshness</td><td>Branches fork the <strong>live</strong> parent at creation time</td><td>Branches are of the <strong>last sync</strong>: nightly in dump mode, near-live in streaming mode (<code dir="auto">--fresh</code> snapshots first)</td><td>The flip side: branch workloads can never load or endanger production, and production credentials never reach developers. See <a href="/tendb/concepts/data-refresh/">Data refresh</a>.</td></tr><tr><td>Where data lives</td><td>Neon-operated cloud regions</td><td>Your AWS account, your VPC</td><td>Data never leaves your account — relevant for compliance and data residency.</td></tr><tr><td>Cost model</td><td>Usage-based: compute hours + storage, scale-to-zero trims idle cost; free tier</td><td>Fixed: one EC2 instance + EBS, whatever your AWS pricing says</td><td>tendb costs the same with 1 branch or 10 — each branch stores only the blocks it changes. No per-seat or plan limits.</td></tr></tbody></table>
+<p>Things Neon has that tendb has no equivalent for at all: connection pooler endpoints, a serverless/HTTP driver, branch protection and expiry/TTL, IP allow-lists, multi-region, org/project hierarchy, usage metering, and the Neon extras (Auth, Data API). Things tendb has that Neon doesn’t: it works with <em>any</em> source Postgres — your production can stay on Aurora, RDS, or Neon itself.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="when-to-pick-which">When to pick which</h2><a class="sl-anchor-link" href="#when-to-pick-which"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “When to pick which”</span></a></div>
+<p><strong>Pick Neon</strong> when you want production itself to be serverless managed Postgres: scale-to-zero for spiky workloads, PITR, read replicas, HA, and zero servers to operate. If your production database can live in Neon’s cloud, branching there is the shortest path.</p>
+<p><strong>Pick tendb</strong> when:</p>
+<ul>
+<li>Production already lives on RDS, Aurora, or another Postgres you can’t (or won’t) move — tendb bolts Neon-style branching onto it without a migration.</li>
+<li>Data must stay in your AWS account. Branch databases, connection strings, and the console all live inside your VPC; access rides on AWS IAM + SSM.</li>
+<li>You want a fixed, predictable bill. One EC2 host serves every branch; a busy PR week costs the same as a quiet one.</li>
+<li>You want branches of <strong>production-sized, production-shaped data</strong> that can never touch production — branch workloads run on a synced copy, and the SQL editor and migrations get full write access precisely because clones are disposable.</li>
+</ul>
+<p><strong>Use both.</strong> tendb’s source is any Postgres URL, so a common setup is Neon (or Aurora) as production and tendb serving the disposable copies:</p>
+<figure class="diagram">
+<div class="scroll">
+<svg viewBox="0 0 720 220" role="img" aria-label="Combined topology: Neon production stays managed while the tendb host (EC2 + ZFS) syncs from it via nightly dump or logical replication and serves copy-on-write clones pr-42, pr-43, and staging" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="neon-parity-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 10 5 0 10z" fill="currentColor"></path>
+</marker>
+</defs>
+<rect x="32" y="87" width="176" height="52" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5"></rect>
+<text x="120" y="118" text-anchor="middle" font-size="14" font-weight="600">Neon production</text>
+<line x1="208" y1="113" x2="338" y2="113" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"></line>
+<text x="273" y="84" text-anchor="middle">nightly dump /</text>
+<text x="273" y="102" text-anchor="middle">logical replication</text>
+<rect x="344" y="77" width="144" height="72" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"></rect>
+<text x="416" y="107" text-anchor="middle" font-size="14" font-weight="600">tendb host</text>
+<text x="416" y="129" text-anchor="middle" font-size="12" fill-opacity="0.62">EC2 + ZFS</text>
+<line x1="488" y1="113" x2="586" y2="53" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"></line>
+<line x1="488" y1="113" x2="586" y2="113" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"></line>
+<line x1="488" y1="113" x2="586" y2="173" stroke="currentColor" stroke-width="1.5" marker-end="url(#neon-parity-arrow)"></line>
+<text x="640" y="24" text-anchor="middle" font-size="12" fill-opacity="0.62">CoW clones</text>
+<rect x="592" y="40" width="96" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"></rect>
+<text x="640" y="57" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="var(--sl-color-accent)">pr-42</text>
+<rect x="592" y="100" width="96" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"></rect>
+<text x="640" y="117" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="var(--sl-color-accent)">pr-43</text>
+<rect x="592" y="160" width="96" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"></rect>
+<text x="640" y="177" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="var(--sl-color-accent)">staging</text>
+</svg>
+</div>
+<figcaption>Neon keeps serving production while the tendb host syncs from it and fans out disposable copy-on-write branches.</figcaption>
+</figure>
+<p>Production keeps its managed HA, PITR, and autoscaling; PR previews, migration rehearsals, and ad-hoc experiments hammer clones in your VPC instead of consuming production compute. Set it up in the <a href="/tendb/getting-started/quickstart/">Quickstart</a>.</p>
+<aside aria-label="Caution" class="starlight-aside starlight-aside--caution"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 16a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm10.67 1.47-8.05-14a3 3 0 0 0-5.24 0l-8 14A3 3 0 0 0 3.94 22h16.12a3 3 0 0 0 2.61-4.53Zm-1.73 2a1 1 0 0 1-.88.51H3.94a1 1 0 0 1-.88-.51 1 1 0 0 1 0-1l8-14a1 1 0 0 1 1.78 0l8.05 14a1 1 0 0 1 .05 1.02v-.02ZM12 8a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V9a1 1 0 0 0-1-1Z"></path></svg>Caution</p><div class="starlight-aside__content"><p>tendb branches are of the last sync, not live production. In dump mode that means “as of last night”; in streaming mode, <code dir="auto">tendb branches create x --fresh</code> snapshots the sync target first for “as of right now”. If you need a branch of production <em>at an arbitrary past moment</em>, that’s PITR — use your source’s PITR, not tendb.</p></div></aside>
+<div class="sl-heading-wrapper level-h2"><h2 id="neonctl--tendb-translation">neonctl → tendb translation</h2><a class="sl-anchor-link" href="#neonctl--tendb-translation"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “neonctl → tendb translation”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>You do this on Neon</th><th>You do this on tendb</th><th>Notes</th></tr></thead><tbody><tr><td><code dir="auto">neonctl branches create --name feat-x</code></td><td><code dir="auto">tendb branches create feat-x</code></td><td>Idempotent; prints the connection URI on stdout.</td></tr><tr><td><code dir="auto">neonctl branches create --name x --parent staging</code></td><td><code dir="auto">tendb branches create x --from staging</code></td><td></td></tr><tr><td><code dir="auto">neonctl branches list</code></td><td><code dir="auto">tendb branches list</code></td><td>Add <code dir="auto">-o json</code> for machine output.</td></tr><tr><td><code dir="auto">neonctl branches delete feat-x</code></td><td><code dir="auto">tendb branches delete feat-x</code></td><td>Exit 0 even if the branch is already gone.</td></tr><tr><td><code dir="auto">neonctl branches reset feat-x --parent</code> (discard writes, take parent’s latest)</td><td><code dir="auto">tendb branches delete feat-x &#x26;&#x26; tendb branches create feat-x --fresh</code></td><td>Two steps because tendb separates the intents — see next row.</td></tr><tr><td>— (discard writes, keep the original branch point)</td><td><code dir="auto">tendb branches reset feat-x</code></td><td>Back to the state the branch was created from.</td></tr><tr><td><code dir="auto">neonctl connection-string feat-x</code></td><td><code dir="auto">tendb connection-string feat-x</code></td><td>Both print the URI and nothing else.</td></tr><tr><td><code dir="auto">psql "$(neonctl connection-string feat-x)"</code></td><td><code dir="auto">tendb psql feat-x</code></td><td>tendb tunnels over SSM automatically.</td></tr><tr><td><code dir="auto">neonctl branches schema-diff main feat-x</code></td><td><em>(no equivalent)</em></td><td><code dir="auto">tendb schema diff</code> checks source↔sync-target drift, a different job.</td></tr><tr><td>Create-branch GitHub Action on PR open</td><td><code dir="auto">URI=$(tendb ci ensure "$PR_NUMBER" | tail -1)</code></td><td>Mask it: <code dir="auto">echo "::add-mask::$URI"</code>. Re-runs return the same URI.</td></tr><tr><td>Delete-branch GitHub Action on PR close</td><td><code dir="auto">tendb ci delete "$PR_NUMBER"</code></td><td>Exits 0 even when the branch never existed or the platform is torn down.</td></tr><tr><td>Temporary branch for migration testing</td><td><code dir="auto">tendb migrate --scratch -- npx prisma migrate deploy</code></td><td>Creates an ephemeral branch, runs the command, deletes it even on failure.</td></tr><tr><td><code dir="auto">neonctl projects list</code></td><td><code dir="auto">tendb status</code></td><td>One tendb engine = one implicit project.</td></tr></tbody></table>
+<aside aria-label="Tip" class="starlight-aside starlight-aside--tip"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path fill-rule="evenodd" d="M1.44 8.855v-.001l3.527-3.516c.34-.344.802-.541 1.285-.548h6.649l.947-.947c3.07-3.07 6.207-3.072 7.62-2.868a1.821 1.821 0 0 1 1.557 1.557c.204 1.413.203 4.55-2.868 7.62l-.946.946v6.649a1.845 1.845 0 0 1-.549 1.286l-3.516 3.528a1.844 1.844 0 0 1-3.11-.944l-.858-4.275-4.52-4.52-2.31-.463-1.964-.394A1.847 1.847 0 0 1 .98 10.693a1.843 1.843 0 0 1 .46-1.838Zm5.379 2.017-3.873-.776L6.32 6.733h4.638l-4.14 4.14Zm8.403-5.655c2.459-2.46 4.856-2.463 5.89-2.33.134 1.035.13 3.432-2.329 5.891l-6.71 6.71-3.561-3.56 6.71-6.711Zm-1.318 15.837-.776-3.873 4.14-4.14v4.639l-3.364 3.374Z" clip-rule="evenodd"></path><path d="M9.318 18.345a.972.972 0 0 0-1.86-.561c-.482 1.435-1.687 2.204-2.934 2.619a8.22 8.22 0 0 1-1.23.302c.062-.365.157-.79.303-1.229.415-1.247 1.184-2.452 2.62-2.935a.971.971 0 1 0-.62-1.842c-.12.04-.236.084-.35.13-2.02.828-3.012 2.588-3.493 4.033a10.383 10.383 0 0 0-.51 2.845l-.001.016v.063c0 .536.434.972.97.972H2.24a7.21 7.21 0 0 0 .878-.065c.527-.063 1.248-.19 2.02-.447 1.445-.48 3.205-1.472 4.033-3.494a5.828 5.828 0 0 0 .147-.407Z"></path></svg>Tip</p><div class="starlight-aside__content"><p>Every tendb command that takes a branch name accepts a bare PR number: <code dir="auto">tendb psql 42</code> connects to <code dir="auto">pr-42</code>. Full flags and exit codes are in the <a href="/tendb/reference/cli/">CLI reference</a>.</p></div></aside></div><footer class="sl-flex astro-zr3ifjdv"><div class="meta sl-flex astro-zr3ifjdv"><a href="https://github.com/10play/tendb/edit/main/apps/docs/src/content/docs/comparison/neon-parity.md" class="sl-flex print:hidden astro-2jhp74la"><svg aria-hidden="true" class="astro-2jhp74la astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a></div><div class="pagination-links print:hidden astro-zjseyi3d" dir="ltr"><a href="/tendb/reference/terraform-network/" rel="prev" class="astro-zjseyi3d"><svg aria-hidden="true" class="astro-zjseyi3d astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span class="astro-zjseyi3d">Previous<br class="astro-zjseyi3d"><span class="link-title astro-zjseyi3d">Terraform: network &amp; console</span></span></a></div></footer><div class="built-by sl-flex astro-jo6i4kqk"><a href="https://10play.dev" rel="noopener" class="astro-jo6i4kqk">Built by<svg viewBox="0 10 232 208" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="astro-jo6i4kqk"><g fill="#ff0a54" class="astro-jo6i4kqk"><path d="m140.14 123.75-24.96 41.56c-12.44 20.71 2.48 47.08 26.64 47.08h49.93c24.16 0 39.08-26.37 26.64-47.08l-24.96-41.56c-12.07-20.1-41.21-20.1-53.28 0z" class="astro-jo6i4kqk"></path><path d="m18.17 206.07c-17.37-9.64-23.32-30.97-13.3-47.66l72.6-120.87c10.04-16.71 32.28-22.43 49.67-12.78 17.37 9.64 23.32 30.97 13.3 47.66l-72.6 120.86c-10.04 16.71-32.28 22.43-49.67 12.78z" class="astro-jo6i4kqk"></path></g></svg><span class="astro-jo6i4kqk">10play</span></a><span class="dot astro-jo6i4kqk" aria-hidden="true">·</span><a href="/tendb/llms.txt" rel="noopener" class="astro-jo6i4kqk">llms.txt</a></div></div></div></main></div></div></div></div></body></html>

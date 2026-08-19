@@ -1,0 +1,114 @@
+<SYSTEM>Getting started: Introduction plus the AWS and local (Docker) quickstarts</SYSTEM>
+
+# What is tendb?
+
+> Why tendb exists, the one-paragraph mental model, who it is for, and when not to use it.
+
+tendb is a self-hosted Neon alternative: database branching for Postgres, on infrastructure you own. It gives every developer and every pull request its own writable copy of your real Postgres database — in seconds, on an EC2 host in your own AWS account. ## The problem [Section titled “The problem”](#the-problem) Development and CI rarely run against realistic data. Seed scripts drift from production. The shared staging database is stale, contended, and nobody dares reset it. Restoring a full copy of production for one experiment takes hours and real money per copy — so nobody does it, and the bugs that only reproduce at production data shape and volume ship anyway. Managed platforms like Neon solved this with database branching. But that means your data lives on their infrastructure. If your database has to stay in your AWS account — or already lives happily on Aurora or RDS — you don’t get the branching workflow. ## What tendb does [Section titled “What tendb does”](#what-tendb-does) tendb brings the Neon-style branching workflow to infrastructure you own: * **Branch databases in seconds.** `tendb branches create my-feature` prints a `postgres://` URI for a real, writable Postgres backed by a copy-on-write clone. A branch costs only the disk pages you change. * **Disposable by design.** Reset a branch to its starting snapshot, or delete it and make another. Nothing you do on a branch touches the source. * **A full toolkit.** A `neonctl`-style CLI, a local web console (SQL editor, branch tree, monitoring, alerts), a CI contract for PR preview databases, and Terraform modules that provision everything. ## The mental model [Section titled “The mental model”](#the-mental-model) tendb is one EC2 host in your AWS account. The bundled Terraform provisions it with ZFS on a gp3 volume and installs [DBLab Engine](https://github.com/postgres-ai/database-lab-engine) (by Postgres.ai), which does the thin cloning. The host syncs from your source Postgres — Neon, Aurora, RDS, anything with a URL — via nightly dump/restore or continuous logical replication. Every branch is a ZFS copy-on-write clone of that synced data, served as its own Postgres on its own port. The host has no SSH and no inbound internet: the CLI discovers it through SSM parameters, reaches it through SSM Session Manager port-forwards, and derives clone passwords locally — no credentials are stored anywhere. One EC2 host in your AWS account: clients tunnel in over SSM, data syncs in from your source Postgres, and every branch is a clone on its own port. ## A four-line session [Section titled “A four-line session”](#a-four-line-session) 
+```bash
+tendb branches create my-feature   # copy-on-write branch DB, ready in ~5s
+tendb psql my-feature              # auto tunnel + psql
+tendb console                      # Neon-style dashboard on localhost
+tendb ci ensure 42 | tail -1       # CI: connection URI as the last stdout line
+```
+ ## Who it’s for [Section titled “Who it’s for”](#who-its-for) * **Teams on Aurora, RDS, Neon, or any managed Postgres** who want branch-per-PR preview databases with production-like data — without moving production anywhere. * **Developers** who want a disposable, writable, prod-shaped database for a feature branch instead of a shared staging server. * **Migration rehearsal**: `tendb migrate --scratch -- npx prisma migrate deploy` runs your migration tool against an ephemeral branch and cleans up after itself, even on failure. * **Teams with data-residency requirements**: everything stays inside your VPC, reachable only over AWS IAM/SSM. ## When not to use tendb [Section titled “When not to use tendb”](#when-not-to-use-tendb) tendb is deliberately not a managed database platform. Skip it if you need: * **Serverless compute.** There is no autoscaling, no scale-to-zero, and no per-branch compute sizing — every branch runs on the same fixed-size host, and capacity is a fixed port pool (10–50 concurrent branches depending on host size). * **Point-in-time recovery.** Branch points are the host’s snapshots (scheduled or on-demand) — there is no WAL archive and no “branch as of an arbitrary timestamp”. * **High availability.** It’s a single host, and branches are disposable by design: replacing the instance destroys all clones and re-syncs from source. * **Public endpoints.** Branches are reachable in-VPC or through SSM tunnels only — there are no public TLS connection strings to hand to an internet-facing app. * **A production database.** tendb branches are for development, CI, and experimentation. Your production keeps running wherever it already runs; tendb only reads from it. ## Next steps [Section titled “Next steps”](#next-steps) Getting the infrastructure up is one command from any project — `npx @10play/tendb init` scaffolds the Terraform and config, `tendb up` applies it. Walk through it in the [Quickstart](/tendb/getting-started/quickstart/) (AWS) or the [local quickstart](/tendb/getting-started/local-quickstart/) (Docker on your laptop, no cloud account), browse the runnable [example app](https://github.com/10play/tendb/tree/main/apps/example), or read the [architecture](/tendb/concepts/architecture/) in depth.
+
+# Local quickstart
+
+> Run the whole tendb stack — engine, snapshots, branches — as Docker containers on your own machine.
+
+The [local platform](/tendb/concepts/platforms/) runs the exact same DBLab engine the cloud platforms run, as containers on your machine: no cloud account, no tunnels, branches on `127.0.0.1`. It is the fastest way to try tendb, and a real dev target — same CLI, same console, same snapshot semantics. ## Prerequisites [Section titled “Prerequisites”](#prerequisites) * **A ZFS-capable Docker host.** This is the one honest requirement, and Docker Desktop on macOS cannot provide it — its LinuxKit kernel has no ZFS module. The preflight script solves it: * **macOS**: creates a [colima](https://github.com/abiosoft/colima) VM (vz + Rosetta — the DBLab images are amd64 and run emulated), installs `zfsutils-linux` inside it, and builds a file-backed zpool. Homebrew required; colima is installed for you if missing. * **Linux**: same steps natively (needs `sudo`; ZFS must be available for your kernel, which stock Ubuntu provides). * **Terraform >= 1.11** and **Node.js >= 20** for the CLI. Install the CLI globally (`npm install -g @10play/tendb`) so the bare `tendb` commands below work — or prefix every command with `npx @10play/tendb`. * A **source Postgres URL** — or nothing: the scaffold provisions a seeded demo source container (500 users, 5000 orders) when you don’t bring one. ## Zero to first branch [Section titled “Zero to first branch”](#zero-to-first-branch) 1. **Scaffold it.** From any project directory: 
+   ```sh
+   tendb init --platform local
+   ```
+ Accept the defaults (or pass `--yes` — the local platform needs no answers) and you get a `tendb/` directory — the Terraform for the engine + [`tendb-snapshotd`](/tendb/reference/snapshotd/) containers, a seeded demo source, the preflight script — plus a `tendb.json` pointing the CLI at it. 2. **Bring it up.** 
+   ```sh
+   tendb up
+   ```
+ `up` first runs the preflight (`tendb/scripts/host-setup.sh` — idempotent; on macOS it installs/starts the colima VM and builds the zpool, and `up` points terraform at the colima Docker socket for you), then applies the stack: engine container (API on `127.0.0.1:2345`), snapshotd, the demo source (unless you set `source_url` in `tendb/terraform.tfvars`), and the discovery file the CLI reads (`~/.tendb/local/params.json`). 3. **Branch, connect, snapshot.** `tendb status` shows `transport local` and the sync progress — the demo source syncs in about a minute. Then: 
+   ```sh
+   tendb branches create my-feature
+   tendb psql my-feature -- -c 'select count(*) from users'
+   tendb snapshots create        # ~10s round-trip through snapshotd
+   ```
+ Clone ports (`6000`+) are published on loopback and forwarded to your Mac by colima, so the printed URI dials as-is. The DBLab embedded UI is on `http://127.0.0.1:2346` (`tendb ui` opens it), and `tendb console` serves the full dashboard — here is its SQL editor on a branch: The console's SQL editor, querying a branch of the seeded demo data. ## Differences from the cloud platforms [Section titled “Differences from the cloud platforms”](#differences-from-the-cloud-platforms) * **No tunnels** — everything is already on `127.0.0.1`; `tendb tunnel -p` still works via a small TCP relay. * **amd64 under Rosetta** on Apple Silicon: noticeably slower than native, entirely fine for dev-sized databases. * **Sizing is the VM’s problem**: the `size` variable still sets port-pool width and per-clone Postgres settings, but CPU/RAM/disk come from the colima VM (`TENDB_VM_CPUS`, `TENDB_VM_MEMORY`, `TENDB_POOL_SIZE` env vars for the preflight). ## Next steps [Section titled “Next steps”](#next-steps) [Example app](https://github.com/10play/tendb/tree/main/apps/example)apps/example in the repo: a scaffolded local platform + a demo that branches, migrates, and queries. [Platforms](/tendb/concepts/platforms/)How local, AWS, GCP, and Azure share one engine contract. [AWS quickstart](/tendb/getting-started/quickstart/)The production path: scaffold, apply, and branch in your own AWS account.
+
+# Quickstart
+
+> Deploy the tendb engine into your AWS account and create your first Postgres branch.
+
+This guide takes you from an empty AWS account to a working branch database: one `npx @10play/tendb init`, one `tendb up`, one `tendb branches create`. The engine is a single EC2 host running [DBLab Engine](https://postgres.ai/) (Database Lab Engine, by Postgres.ai) on ZFS — it dumps your source database on a schedule and serves copy-on-write clones in seconds. ## Prerequisites [Section titled “Prerequisites”](#prerequisites) You need: * **An AWS account** with credentials configured locally (`aws configure`, SSO, or environment variables). Applying the Terraform stack requires broad permissions (EC2, VPC, IAM, SSM, KMS); day-to-day CLI use needs only the narrow policy the module outputs — you’ll attach that in step 4. * **Terraform >= 1.11** and AWS provider `~> 6.0`. The 1.11 floor is real: the module uses write-only (`value_wo`) arguments so the API token never enters Terraform state. * **Node.js >= 20** for the CLI. Install it globally (`npm install -g @10play/tendb`) so the bare `tendb` commands below work — or prefix every command with `npx @10play/tendb` instead. * **The AWS Session Manager plugin** — the CLI reaches the engine exclusively through SSM port-forwards, no SSH, no open database ports: * macOS 
+    ```sh
+    brew install --cask session-manager-plugin
+    ```
+ * Ubuntu / Debian 
+    ```sh
+    curl -fsSL https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb -o /tmp/smp.deb
+    sudo dpkg -i /tmp/smp.deb
+    ```
+ * Other Follow the [AWS Session Manager plugin install guide](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) for Windows and other Linux distributions. * **`psql`** — used in step 1 to check your source’s major version, and by `tendb psql`: `brew install libpq` on macOS, or your distro’s `postgresql-client` package. ## Zero to first branch [Section titled “Zero to first branch”](#zero-to-first-branch) 1. **Put your source database URL in Secrets Manager.** The engine host pulls the source URL at boot through its instance profile — it never transits Terraform state, user data, or CI. Create the secret out of band: 
+   ```sh
+   export SOURCE_URL='postgres://user:pass@host:5432/dbname'
+   aws secretsmanager create-secret \
+     --name tendb/source-url \
+     --secret-string "$SOURCE_URL"
+   psql "$SOURCE_URL" -c 'show server_version'
+   ```
+ Note two things from the output: the secret **ARN**, and your source’s Postgres **major version** — the scaffolder asks for both in the next step. Any Postgres URL works: Neon, Aurora, RDS, self-hosted. 2. **Scaffold the deployment.** From your project root: 
+   ```sh
+   npx @10play/tendb init
+   ```
+ It asks for the platform (`aws`), region, size, the Postgres major version, and the secret ARN from step 1, then writes a `tendb/` directory (real Terraform you own and can edit — a minimal VPC plus the engine, with module sources pinned to a tendb release) and a `tendb.json` at your project root. Every prompt has a flag twin for CI: `npx @10play/tendb init --platform aws --yes --region us-east-1 --pg-version 16 --source-secret-arn arn:...`. The Postgres major version is asked without a default on purpose: it selects the clone Postgres image, and **the clone image’s major version must match the source or the restore fails** — that’s what the `show server_version` in step 1 was for. Two edits worth making in `tendb/terraform.tfvars` before bringing it up: if the secret is a JSON object rather than a bare URL (say `{"NEON_DATABASE_URL": "postgres://..."}`), set `source_secret_json_key` to the key name; Neon sources also want `dump_exclude_extensions = ["pg_session_jwt"]`. `tendb.json` is a plain committed config file — the CLI walks upward from the current directory until it finds one, so the repo root covers every subdirectory. Add `"profile": "your-aws-profile"` if you use named profiles; see [Configuration](/tendb/reference/configuration/) for every field. 3. **Bring it up.** 
+   ```sh
+   tendb up
+   ```
+ `up` verifies the source secret exists, then runs `terraform init` + `terraform apply` in `tendb/` (a few minutes) and folds the stack’s discovery outputs back into `tendb.json` — no hand-written config. Plain `terraform apply` in the directory works too; `tendb down` destroys the stack. The host has zero ingress by default — no SSH, no key pair, IMDSv2 only; all admin and client access rides SSM Session Manager. Caution Any Terraform change that alters the engine’s user data **replaces the instance and destroys the ZFS pool and every branch on it** (data re-syncs from source at boot). See [Operations](/tendb/guides/operations/) before changing a deployed stack. 4. **Grant your users the client IAM policy.** The engine module renders a least-privilege policy for CLI users and CI: SSM session access scoped to the engine host by tag, plus read access to the discovery parameters (including the API token — the CLI derives clone passwords from it locally). The scaffold sets `create_client_iam_policy = true`, so the policy already exists as a managed policy — attach its ARN to your user, group, or CI role: 
+   ```sh
+   aws iam attach-user-policy \
+     --user-name you \
+     --policy-arn "$(terraform -chdir=tendb output -raw client_iam_policy_arn)"
+   ```
+ If you’d rather embed the JSON in your own IAM setup, the raw document is the module’s `client_iam_policy_json` output. If your local credentials are already admin, you can skip this step for yourself — but CI will need it. 5. **Wait for the first sync.** At boot the engine dumps your source database and restores it into the ZFS pool — minutes for small databases, hours for large ones. Watch it with `tendb status`: 
+   ```plaintext
+   health   sync mode  sync status  last refresh  next refresh  data state at    disk        clones
+   OK       logical    finished     -             in 15h        20260818123448   0% of 19GB  0 / 10
+   ```
+ Once `data state at` shows a timestamp, the first snapshot exists and branches will provision. (You don’t have to poll: `branches create` waits up to 15 minutes for the first snapshot on its own.) If the first sync fails: the boot log on the host is `/var/log/dblab-init.log`, engine logs are `docker logs dblab_server`, and `aws ssm start-session --target <instance_id>` reaches the host — there is no SSH. 6. **Create your first branch.** 
+   ```sh
+   tendb branches create my-feature
+   ```
+ In a few seconds you get a full copy-on-write database. Progress goes to stderr; the only thing on stdout is the connection URI: 
+   ```plaintext
+   postgres://my_feature:1a2b3c…@10.60.100.12:6000/mydb
+   ```
+ The command is idempotent — running it again returns the same branch. A bare number is PR shorthand: `tendb branches create 42` creates `pr-42`. Caution The printed URI contains the real password. In CI, mask it: `URI=$(tendb ci ensure "$PR" | tail -1)` then `echo "::add-mask::$URI"` — `tendb ci` is the CI-facing variant of `branches`, covered in [CI previews](/tendb/guides/ci-previews/). 7. **Connect.** The quickest look around — auto-tunnel plus interactive psql: 
+   ```sh
+   tendb psql my-feature
+   ```
+ Pass psql arguments after `--`: 
+   ```sh
+   tendb psql my-feature -- -c 'select count(*) from users'
+   ```
+ For an application, print the URI with `tendb connection-string`: 
+   ```sh
+   tendb connection-string my-feature
+   ```
+ That URI uses the host’s in-VPC address, so from your laptop open a tunnel first and use the localhost form: 
+   ```sh
+   tendb tunnel my-feature          # keeps running; ctrl-c to stop
+   # in another shell:
+   tendb connection-string my-feature --local
+   ```
+ Or do both in one shot — run any command with `DATABASE_URL` already set: 
+   ```sh
+   tendb tunnel my-feature -- npm test
+   ```
+ Done experimenting? Branches are disposable: 
+   ```sh
+   tendb branches delete my-feature
+   ```
+ 8. **Open the console.** 
+   ```sh
+   tendb console
+   ```
+ A Neon-style dashboard on `http://localhost:4400`, over the same SSM session — branches, a SQL editor, snapshots, and alerts, with nothing sensitive ever reaching the browser. See [the web console](/tendb/guides/console/) for every screen. tendb console — branches, storage, sync state, and platform settings (shown here on a local-platform deployment; yours will read SSM). ## Next steps [Section titled “Next steps”](#next-steps) [CI preview environments](/tendb/guides/ci-previews/)One branch database per pull request with tendb ci ensure / delete. [The web console](/tendb/guides/console/)A Neon-style dashboard: branches, SQL, snapshots, alerts — locally or hosted. [CLI reference](/tendb/reference/cli/)Every command, flag, and exit code. [Architecture](/tendb/concepts/architecture/)How DBLab Engine, ZFS, and SSM fit together.

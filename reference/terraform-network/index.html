@@ -1,0 +1,506 @@
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-rf4ifhtz"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Terraform: network & console | tendb</title><link rel="canonical" href="https://10play.github.io/tendb/reference/terraform-network/"/><link rel="sitemap" href="/tendb/sitemap-index.xml"/><link rel="shortcut icon" href="/tendb/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.2.2"/><meta name="generator" content="Starlight v0.41.7"/><meta property="og:title" content="Terraform: network &amp; console"/><meta property="og:type" content="article"/><meta property="og:url" content="https://10play.github.io/tendb/reference/terraform-network/"/><meta property="og:locale" content="en"/><meta property="og:description" content="Reference for the tendb network and console Terraform modules and the three shipped examples — standalone, existing-vpc, and aurora-source."/><meta property="og:site_name" content="tendb"/><meta name="twitter:card" content="summary_large_image"/><meta name="description" content="Reference for the tendb network and console Terraform modules and the three shipped examples — standalone, existing-vpc, and aurora-source."/><script>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/tendb/_astro/print.ehPL0gv-.css" media="print"><link rel="stylesheet" href="/tendb/_astro/common.PW1mb7t8.css"><style>@layer starlight.components{.card-grid:where(.astro-o76mbyrd){grid-template-columns:100%;gap:1rem;display:grid}.card-grid:where(.astro-o76mbyrd)>*{margin-top:0!important}@media (width>=50rem){.card-grid:where(.astro-o76mbyrd){grid-template-columns:1fr 1fr;gap:1.5rem}.stagger:where(.astro-o76mbyrd){--stagger-height:5rem;padding-bottom:var(--stagger-height)}.stagger:where(.astro-o76mbyrd)>:nth-child(2n){transform:translateY(var(--stagger-height))}}}
+@layer starlight.components{.card:where(.astro-iuq5fkb7){--sl-card-border:var(--sl-color-purple);--sl-card-bg:var(--sl-color-purple-low);border:1px solid var(--sl-color-gray-5);background-color:var(--sl-color-black);flex-direction:column;gap:clamp(.5rem,.125rem + 1vw,1rem);padding:clamp(1rem,.125rem + 3vw,2.5rem)}.card:where(.astro-iuq5fkb7):nth-child(4n+1){--sl-card-border:var(--sl-color-orange);--sl-card-bg:var(--sl-color-orange-low)}.card:where(.astro-iuq5fkb7):nth-child(4n+3){--sl-card-border:var(--sl-color-green);--sl-card-bg:var(--sl-color-green-low)}.card:where(.astro-iuq5fkb7):nth-child(4n+4){--sl-card-border:var(--sl-color-red);--sl-card-bg:var(--sl-color-red-low)}.card:where(.astro-iuq5fkb7):nth-child(4n+5){--sl-card-border:var(--sl-color-blue);--sl-card-bg:var(--sl-color-blue-low)}.title:where(.astro-iuq5fkb7){font-weight:600;font-size:var(--sl-text-h4);color:var(--sl-color-white);line-height:var(--sl-line-height-headings);align-items:center;gap:1rem}.card:where(.astro-iuq5fkb7) .icon:where(.astro-iuq5fkb7){border:1px solid var(--sl-card-border);background-color:var(--sl-card-bg);border-radius:.25rem;flex-shrink:0;padding:.2em}.card:where(.astro-iuq5fkb7) .body:where(.astro-iuq5fkb7){font-size:clamp(var(--sl-text-sm), calc(.5rem + 1vw), var(--sl-text-body));margin:0}}
+@layer starlight.components{svg:where(.astro-jc46bh2q){color:var(--sl-icon-color);font-size:var(--sl-icon-size,1em);width:1em;height:1em}}
+@layer starlight.components{starlight-tabs:where(.astro-uwk5kjn7){display:block}.tablist-wrapper:where(.astro-uwk5kjn7){overflow-x:auto}:where(.astro-uwk5kjn7)[role=tablist]{border-bottom:2px solid var(--sl-color-gray-5);padding:0;list-style:none;display:flex}.tab:where(.astro-uwk5kjn7){display:flex}.tab:where(.astro-uwk5kjn7)>:where(.astro-uwk5kjn7)[role=tab]{--sl-tab-color-border:var(--sl-color-gray-5);line-height:var(--sl-line-height-headings);box-shadow:0 2px 0 var(--sl-tab-color-border);color:var(--sl-color-gray-3);outline-offset:var(--sl-outline-offset-inside);overflow-wrap:initial;align-items:center;gap:.5rem;padding:.275rem 1.25rem;text-decoration:none;display:flex}.tab:where(.astro-uwk5kjn7) :where(.astro-uwk5kjn7)[role=tab][aria-selected=true]{--sl-tab-color-border:var(--sl-color-text-accent);color:var(--sl-color-white);font-weight:600}.tablist-wrapper:where(.astro-uwk5kjn7)~[role=tabpanel]{margin-top:1rem}}
+@layer starlight.components{.sl-link-card:where(.astro-jpsdbrh3){border:1px solid var(--sl-color-gray-5);box-shadow:var(--sl-shadow-sm);border-radius:.5rem;grid-template-columns:1fr auto;gap:.5rem;padding:1rem;display:grid;position:relative}a:where(.astro-jpsdbrh3){line-height:var(--sl-line-height-headings);text-decoration:none}a:where(.astro-jpsdbrh3):before{content:"";position:absolute;inset:0}.stack:where(.astro-jpsdbrh3){flex-direction:column;gap:.5rem}.title:where(.astro-jpsdbrh3){color:var(--sl-color-white);font-weight:600;font-size:var(--sl-text-lg)}.description:where(.astro-jpsdbrh3){color:var(--sl-color-gray-3);line-height:1.5}.icon:where(.astro-jpsdbrh3){color:var(--sl-color-gray-3)}.sl-link-card:where(.astro-jpsdbrh3):hover{background:var(--sl-color-gray-7,var(--sl-color-gray-6));border-color:var(--sl-color-gray-2)}.sl-link-card:where(.astro-jpsdbrh3):hover .icon:where(.astro-jpsdbrh3){color:var(--sl-color-white)}.sl-steps{--bullet-size:calc(var(--sl-line-height) * 1rem);--bullet-margin:.375rem;counter-reset:steps-counter var(--sl-steps-start,0);padding-inline-start:0;list-style:none}.sl-steps>li{counter-increment:steps-counter;padding-inline-start:calc(var(--bullet-size) + 1rem);min-height:calc(var(--bullet-size) + var(--bullet-margin));padding-bottom:1px;position:relative}.sl-steps>li+li{margin-top:0}.sl-steps>li:before{content:counter(steps-counter);top:0;width:var(--bullet-size);height:var(--bullet-size);line-height:var(--bullet-size);font-size:var(--sl-text-xs);text-align:center;color:var(--sl-color-white);background-color:var(--sl-color-gray-6);box-shadow:inset 0 0 0 1px var(--sl-color-gray-5);border-radius:99rem;font-weight:600;position:absolute;inset-inline-start:0}.sl-steps>li:after{--guide-width:1px;content:"";top:calc(var(--bullet-size) + var(--bullet-margin));bottom:var(--bullet-margin);width:var(--guide-width);background-color:var(--sl-color-hairline-light);position:absolute;inset-inline-start:calc((var(--bullet-size) - var(--guide-width)) / 2)}}@layer starlight.content{.sl-steps>li>:first-child{--lh:calc(1em * var(--sl-line-height));--shift-y:calc(.5 * (var(--bullet-size) - var(--lh)));transform:translateY(var(--shift-y));margin-bottom:var(--shift-y)}.sl-steps>li>:first-child:where(h1,h2,h3,h4,h5,h6){--lh:calc(1em * var(--sl-line-height-headings))}@supports (--prop:1lh){.sl-steps>li>:first-child{--lh:1lh}}}
+</style><script type="module" src="/tendb/_astro/page.Dwipeu-R.js"></script></head><body class="astro-rf4ifhtz"><a class="sl-skip-link astro-5mdqhp27" href="#_top">Skip to content</a><div class="page sl-flex astro-3dl5vedh"><header class="header astro-3dl5vedh"><div class="header astro-e3el5juu"><div class="title-wrapper sl-flex astro-e3el5juu"><a href="/tendb/" class="site-title sl-flex astro-pm4m6a7f"><img class="light:sl-hidden print:hidden astro-pm4m6a7f" alt="tendb" src="/tendb/_astro/tendb-logo-dark.xjnCW86O.svg" width="76" height="24"><img class="dark:sl-hidden print:block astro-pm4m6a7f" alt="tendb" src="/tendb/_astro/tendb-logo-light.D6C4lrkS.svg" width="76" height="24"><span class="sr-only astro-pm4m6a7f" translate="no">tendb</span></a></div><div class="sl-flex print:hidden astro-e3el5juu"><site-search class="astro-e3el5juu astro-wzw662ow" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-wzw662ow"><svg aria-hidden="true" class="astro-wzw662ow astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-wzw662ow" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-wzw662ow" style="display: none;"><kbd class="astro-wzw662ow">Ctrl</kbd><kbd class="astro-wzw662ow">K</kbd></kbd></button><dialog style="padding:0" aria-label="Search" class="astro-wzw662ow"><div class="dialog-frame sl-flex astro-wzw662ow"><button data-close-modal class="sl-flex md:sl-hidden astro-wzw662ow">Cancel</button><div class="search-container astro-wzw662ow"><div id="starlight__search" class="astro-wzw662ow"></div></div></div></dialog></site-search><script>
+	(() => {
+		const openBtn = document.querySelector('button[data-open-modal]');
+		const shortcut = openBtn?.querySelector('kbd');
+		if (!openBtn || !(shortcut instanceof HTMLElement)) return;
+		const platformKey = shortcut.querySelector('kbd');
+		if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+			platformKey.textContent = '⌘';
+			openBtn.setAttribute('aria-keyshortcuts', 'Meta+K');
+		}
+		shortcut.style.display = '';
+	})();
+</script><script type="module" src="/tendb/_astro/Search.astro_astro_type_script_index_0_lang.7qPUx3RX.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-e3el5juu"><div class="sl-flex social-icons astro-e3el5juu"><a href="https://github.com/10play/tendb" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">GitHub</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a><a href="https://10play.dev" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">10play</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M19.33 10.18a1 1 0 0 1-.77 0 1 1 0 0 1-.62-.93l.01-1.83-8.2 8.2a1 1 0 0 1-1.41-1.42l8.2-8.2H14.7a1 1 0 0 1 0-2h4.25a1 1 0 0 1 1 1v4.25a1 1 0 0 1-.62.93Z"/><path d="M11 4a1 1 0 1 1 0 2H7a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4a1 1 0 1 1 2 0v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-7qoap3rh"><span class="sr-only astro-7qoap3rh">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-7qoap3rh"><option value="dark" class="astro-7qoap3rh">Dark</option><option value="light" class="astro-7qoap3rh">Light</option><option value="auto" selected class="astro-7qoap3rh">Auto</option></select><svg aria-hidden="true" class="icon caret astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-3dl5vedh" aria-label="Main"><starlight-menu-button class="print:hidden astro-rf4inbel"><button aria-expanded="false" aria-label="Menu" aria-controls="starlight__sidebar" class="sl-flex md:sl-hidden astro-rf4inbel"><svg aria-hidden="true" class="open-menu astro-rf4inbel astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-rf4inbel astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg></button></starlight-menu-button><script type="module">var e=class extends HTMLElement{btn=this.querySelector(`button`);constructor(){super(),this.btn.addEventListener(`click`,()=>this.toggleExpanded());let e=this.closest(`nav`);e&&e.addEventListener(`keyup`,e=>this.closeOnEscape(e)),matchMedia(`(min-width: 50em)`).addEventListener(`change`,()=>this.setExpanded(!1))}setExpanded(e){this.setAttribute(`aria-expanded`,String(e)),document.body.toggleAttribute(`data-mobile-menu-expanded`,e),document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}toggleExpanded(){this.setExpanded(this.getAttribute(`aria-expanded`)!==`true`)}closeOnEscape(e){e.code===`Escape`&&(this.setExpanded(!1),this.btn.focus())}};customElements.define(`starlight-menu-button`,e);</script><div id="starlight__sidebar" class="sidebar-pane astro-3dl5vedh"><div class="sidebar-content sl-flex astro-3dl5vedh"><sl-sidebar-state-persist data-hash="1vzh0xa" class="astro-3inv6tqz"><script aria-hidden="true">
+		(() => {
+			try {
+				if (!matchMedia('(min-width: 50em)').matches) return;
+				/** @type {HTMLElement | null} */
+				const target = document.querySelector('sl-sidebar-state-persist');
+				const state = JSON.parse(sessionStorage.getItem('sl-sidebar-state') || '0');
+				if (!target || !state || target.dataset.hash !== state.hash) return;
+				window._starlightScrollRestore = state.scroll;
+				customElements.define(
+					'sl-sidebar-restore',
+					class SidebarRestore extends HTMLElement {
+						connectedCallback() {
+							try {
+								const idx = parseInt(this.dataset.index || '');
+								const details = this.closest('details');
+								if (details && typeof state.open[idx] === 'boolean') details.open = state.open[idx];
+							} catch {}
+						}
+					}
+				);
+			} catch {}
+		})();
+	</script><ul class="top-level astro-hwxxo6g3"><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Start here</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="0"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/getting-started/introduction/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">What is tendb?</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/getting-started/quickstart/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">AWS quickstart</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/getting-started/local-quickstart/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Local quickstart</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">How it works</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="1"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/concepts/architecture/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Architecture</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/concepts/platforms/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Platforms</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/concepts/security/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Security model</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/concepts/data-refresh/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Data refresh lifecycle</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Guides</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="2"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/guides/ci-previews/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">CI preview environments</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/console/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">The web console</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/operations/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Operations &amp; troubleshooting</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/gcp/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Platform: GCP</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/guides/azure/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Platform: Azure</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Reference</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="3"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/reference/cli/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">CLI commands</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/configuration/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Configuration</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/engine-contract/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">The engine contract</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/snapshotd/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">tendb-snapshotd</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/terraform-engine/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Terraform: engine module</span></a></li><li class="astro-hwxxo6g3"><a href="/tendb/reference/terraform-network/" aria-current="page" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Terraform: network &amp; console</span></a></li></ul></details></li><li class="astro-hwxxo6g3"><details open class="astro-hwxxo6g3"><summary class="astro-hwxxo6g3"><span class="group-label astro-hwxxo6g3"><span class="large astro-hwxxo6g3">Comparison</span></span><svg aria-hidden="true" class="caret astro-hwxxo6g3 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="4"></sl-sidebar-restore><ul class="astro-hwxxo6g3"><li class="astro-hwxxo6g3"><a href="/tendb/comparison/neon-parity/" class="astro-hwxxo6g3"><span class="astro-hwxxo6g3">Neon parity</span></a></li></ul></details></li></ul><script aria-hidden="true">
+		(() => {
+			const scroller = document.getElementById('starlight__sidebar');
+			if (!window._starlightScrollRestore || !scroller) return;
+			scroller.scrollTop = window._starlightScrollRestore;
+			delete window._starlightScrollRestore;
+		})();
+	</script></sl-sidebar-state-persist><div class="md:sl-hidden"><div class="mobile-preferences sl-flex astro-qneda7fs"><div class="social-icons astro-qneda7fs"><a href="https://github.com/10play/tendb" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">GitHub</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a><a href="https://10play.dev" rel="me" class="sl-flex astro-e2ohhpx4"><span class="sr-only astro-e2ohhpx4">10play</span><svg aria-hidden="true" class="astro-e2ohhpx4 astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M19.33 10.18a1 1 0 0 1-.77 0 1 1 0 0 1-.62-.93l.01-1.83-8.2 8.2a1 1 0 0 1-1.41-1.42l8.2-8.2H14.7a1 1 0 0 1 0-2h4.25a1 1 0 0 1 1 1v4.25a1 1 0 0 1-.62.93Z"/><path d="M11 4a1 1 0 1 1 0 2H7a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4a1 1 0 1 1 2 0v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-7qoap3rh"><span class="sr-only astro-7qoap3rh">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-7qoap3rh"><option value="dark" class="astro-7qoap3rh">Dark</option><option value="light" class="astro-7qoap3rh">Light</option><option value="auto" selected class="astro-7qoap3rh">Auto</option></select><svg aria-hidden="true" class="icon caret astro-7qoap3rh astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script></div></div></div></div></nav><div class="main-frame astro-3dl5vedh"><script type="module">var e=document.getElementById(`starlight__sidebar`),t=e?.querySelector(`sl-sidebar-state-persist`),n=`sl-sidebar-state`,r=()=>{let r=[],i=t?.dataset.hash||``;try{let e=sessionStorage.getItem(n),t=JSON.parse(e||`{}`);Array.isArray(t.open)&&t.hash===i&&(r=t.open)}catch{}return{hash:i,open:r,scroll:e?.scrollTop||0}},i=e=>{try{sessionStorage.setItem(n,JSON.stringify(e))}catch{}},a=()=>i(r()),o=(e,t)=>{let n=r();n.open[t]=e,i(n)};t?.addEventListener(`click`,e=>{if(!(e.target instanceof Element))return;let t=e.target.closest(`summary`)?.closest(`details`);if(!t)return;let n=t.querySelector(`sl-sidebar-restore`),r=parseInt(n?.dataset.index||``);isNaN(r)||o(!t.open,r)}),addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`&&a()});</script><div class="lg:sl-flex astro-oiv6ttks"><aside class="right-sidebar-container print:hidden astro-oiv6ttks"><div class="right-sidebar astro-oiv6ttks"><div class="lg:sl-hidden astro-6yaqbhlx"><mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-4tsgki3g"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-4tsgki3g"><details id="starlight__mobile-toc" class="astro-4tsgki3g"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-4tsgki3g"><span class="toggle sl-flex astro-4tsgki3g">On this page<svg aria-hidden="true" class="caret astro-4tsgki3g astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-4tsgki3g"></span></summary><div class="dropdown astro-4tsgki3g"><ul class="isMobile astro-qgklxlrx" style="--depth: 0;"><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#_top" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Overview</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#network-module" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Network module</span></a><ul class="isMobile astro-qgklxlrx" style="--depth: 1;"><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#modes" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Modes</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#inputs" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Inputs</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#outputs" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Outputs</span></a></li></ul></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#console-module" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Console module</span></a><ul class="isMobile astro-qgklxlrx" style="--depth: 1;"><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#prerequisites" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Prerequisites</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#inputs-1" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Inputs</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#outputs-1" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Outputs</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#connecting-the-console-to-the-engine" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Connecting the console to the engine</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#releases-and-instance-replacement" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Releases and instance replacement</span></a></li></ul></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#examples" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Examples</span></a><ul class="isMobile astro-qgklxlrx" style="--depth: 1;"><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#examplesstandalone--greenfield-network--engine--optional-console" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">examples/standalone — greenfield network + engine (+ optional console)</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#examplesexisting-vpc--engine-only-into-an-existing-vpc" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">examples/existing-vpc — engine-only into an existing VPC</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#examplesaurora-source--aurora-as-the-streaming-source" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">examples/aurora-source — Aurora as the streaming source</span></a></li></ul></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#cost-summary" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Cost summary</span></a></li></ul></div></details></nav></mobile-starlight-toc><script type="module" src="/tendb/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.BcSo_yiZ.js"></script></div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-6yaqbhlx"><div class="sl-container astro-6yaqbhlx"><starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-qgklxlrx" style="--depth: 0;"><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#_top" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Overview</span></a></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#network-module" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Network module</span></a><ul class="astro-qgklxlrx" style="--depth: 1;"><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#modes" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Modes</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#inputs" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Inputs</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#outputs" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Outputs</span></a></li></ul></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#console-module" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Console module</span></a><ul class="astro-qgklxlrx" style="--depth: 1;"><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#prerequisites" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Prerequisites</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#inputs-1" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Inputs</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#outputs-1" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Outputs</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#connecting-the-console-to-the-engine" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Connecting the console to the engine</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#releases-and-instance-replacement" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">Releases and instance replacement</span></a></li></ul></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#examples" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Examples</span></a><ul class="astro-qgklxlrx" style="--depth: 1;"><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#examplesstandalone--greenfield-network--engine--optional-console" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">examples/standalone — greenfield network + engine (+ optional console)</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#examplesexisting-vpc--engine-only-into-an-existing-vpc" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">examples/existing-vpc — engine-only into an existing VPC</span></a></li><li style="--depth: 1;" class="astro-qgklxlrx"><a href="#examplesaurora-source--aurora-as-the-streaming-source" style="--depth: 1;" class="astro-qgklxlrx"><span style="--depth: 1;" class="astro-qgklxlrx">examples/aurora-source — Aurora as the streaming source</span></a></li></ul></li><li style="--depth: 0;" class="astro-qgklxlrx"><a href="#cost-summary" style="--depth: 0;" class="astro-qgklxlrx"><span style="--depth: 0;" class="astro-qgklxlrx">Cost summary</span></a></li></ul></nav></starlight-toc><script type="module" src="/tendb/_astro/TableOfContents.astro_astro_type_script_index_0_lang.Csloo1VZ.js"></script></div></div></div></aside><div class="main-pane astro-oiv6ttks"><main data-pagefind-body class="astro-rf4ifhtz" lang="en" dir="ltr"><div class="content-panel astro-sub65yiv"><div class="sl-container astro-sub65yiv"><h1 id="_top" class="astro-75kuhzsi">Terraform: network &amp; console</h1></div></div><div class="content-panel astro-sub65yiv"><div class="sl-container astro-sub65yiv"><div class="sl-markdown-content"><p>Alongside the <a href="/tendb/reference/terraform-engine/">engine module</a>, the repo ships two supporting modules and three worked examples:</p>
+<ul>
+<li><strong><code dir="auto">modules/aws/network</code></strong> — a minimal VPC for greenfield deployments. Optional: skip it if you already have a VPC.</li>
+<li><strong><code dir="auto">modules/aws/console</code></strong> — a hosted web console behind Google login, running in-VPC next to the engine.</li>
+<li><strong><code dir="auto">examples/standalone</code></strong>, <strong><code dir="auto">examples/existing-vpc</code></strong>, <strong><code dir="auto">examples/aurora-source</code></strong> — copy-paste starting points for the three common topologies.</li>
+</ul>
+<p>All modules require Terraform <code dir="auto">>= 1.11</code> and AWS provider <code dir="auto">~> 6.0</code>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="network-module">Network module</h2><a class="sl-anchor-link" href="#network-module"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Network module”</span></a></div>
+<p>Module path: <code dir="auto">packages/tendb/terraform/modules/aws/network</code>. A thin wrapper around the community module <code dir="auto">terraform-aws-modules/vpc/aws</code> (<code dir="auto">~> 6.0</code>).</p>
+<aside aria-label="When to skip it" class="starlight-aside starlight-aside--tip"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path fill-rule="evenodd" d="M1.44 8.855v-.001l3.527-3.516c.34-.344.802-.541 1.285-.548h6.649l.947-.947c3.07-3.07 6.207-3.072 7.62-2.868a1.821 1.821 0 0 1 1.557 1.557c.204 1.413.203 4.55-2.868 7.62l-.946.946v6.649a1.845 1.845 0 0 1-.549 1.286l-3.516 3.528a1.844 1.844 0 0 1-3.11-.944l-.858-4.275-4.52-4.52-2.31-.463-1.964-.394A1.847 1.847 0 0 1 .98 10.693a1.843 1.843 0 0 1 .46-1.838Zm5.379 2.017-3.873-.776L6.32 6.733h4.638l-4.14 4.14Zm8.403-5.655c2.459-2.46 4.856-2.463 5.89-2.33.134 1.035.13 3.432-2.329 5.891l-6.71 6.71-3.561-3.56 6.71-6.711Zm-1.318 15.837-.776-3.873 4.14-4.14v4.639l-3.364 3.374Z" clip-rule="evenodd"></path><path d="M9.318 18.345a.972.972 0 0 0-1.86-.561c-.482 1.435-1.687 2.204-2.934 2.619a8.22 8.22 0 0 1-1.23.302c.062-.365.157-.79.303-1.229.415-1.247 1.184-2.452 2.62-2.935a.971.971 0 1 0-.62-1.842c-.12.04-.236.084-.35.13-2.02.828-3.012 2.588-3.493 4.033a10.383 10.383 0 0 0-.51 2.845l-.001.016v.063c0 .536.434.972.97.972H2.24a7.21 7.21 0 0 0 .878-.065c.527-.063 1.248-.19 2.02-.447 1.445-.48 3.205-1.472 4.033-3.494a5.828 5.828 0 0 0 .147-.407Z"></path></svg>When to skip it</p><div class="starlight-aside__content"><p>The engine module only needs a <code dir="auto">vpc_id</code> and a <code dir="auto">subnet_id</code>. If you already have a VPC, skip this module entirely and pass your own — that is exactly what the <a href="#examplesexisting-vpc--engine-only-into-an-existing-vpc">existing-vpc example</a> does.</p></div></aside>
+<div class="sl-heading-wrapper level-h3"><h3 id="modes">Modes</h3><a class="sl-anchor-link" href="#modes"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Modes”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Mode</th><th>What you get</th><th>Monthly cost</th></tr></thead><tbody><tr><td><code dir="auto">public</code> (default)</td><td>Public subnets + Internet Gateway, no NAT. The engine gets a public IP for <strong>egress only</strong> — Docker pulls, apt, dumping the source DB. Zero inbound exposure: the engine SG admits declared clients only, and admin access is SSM-only.</td><td>~$3.65 (the public IP)</td></tr><tr><td><code dir="auto">private-nat</code></td><td>Private subnets + a single NAT gateway, for orgs that prohibit public IPs.</td><td>~$33 for the NAT <strong>plus $0.045/GB</strong> of processing on every nightly dump — a 100 GB nightly dump adds roughly $135/mo of NAT processing alone</td></tr></tbody></table>
+<aside aria-label="Caution" class="starlight-aside starlight-aside--caution"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 16a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm10.67 1.47-8.05-14a3 3 0 0 0-5.24 0l-8 14A3 3 0 0 0 3.94 22h16.12a3 3 0 0 0 2.61-4.53Zm-1.73 2a1 1 0 0 1-.88.51H3.94a1 1 0 0 1-.88-.51 1 1 0 0 1 0-1l8-14a1 1 0 0 1 1.78 0l8.05 14a1 1 0 0 1 .05 1.02v-.02ZM12 8a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V9a1 1 0 0 0-1-1Z"></path></svg>Caution</p><div class="starlight-aside__content"><p><code dir="auto">private-nat</code> bills NAT processing on every byte of every refresh. Accept the dump-processing cost consciously before choosing it over <code dir="auto">public</code>.</p></div></aside>
+<div class="sl-heading-wrapper level-h3"><h3 id="inputs">Inputs</h3><a class="sl-anchor-link" href="#inputs"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Inputs”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">name</code></td><td><code dir="auto">string</code></td><td><code dir="auto">"tendb"</code></td><td>VPC name.</td></tr><tr><td><code dir="auto">cidr</code></td><td><code dir="auto">string</code></td><td><code dir="auto">"10.60.0.0/16"</code></td><td>VPC CIDR.</td></tr><tr><td><code dir="auto">mode</code></td><td><code dir="auto">string</code></td><td><code dir="auto">"public"</code></td><td><code dir="auto">"public"</code> or <code dir="auto">"private-nat"</code> (validated).</td></tr><tr><td><code dir="auto">az_count</code></td><td><code dir="auto">number</code></td><td><code dir="auto">2</code></td><td>How many availability zones to spread subnets across.</td></tr><tr><td><code dir="auto">tags</code></td><td><code dir="auto">map(string)</code></td><td><code dir="auto">{}</code></td><td>Extra tags.</td></tr></tbody></table>
+<p>Subnet layout with the default CIDR:</p>
+<ul>
+<li><strong>Public subnets</strong> (always created, one per AZ): <code dir="auto">10.60.100.0/24</code>, <code dir="auto">10.60.101.0/24</code>, …</li>
+<li><strong>Private subnets</strong> (only in <code dir="auto">private-nat</code> mode): <code dir="auto">10.60.0.0/20</code>, <code dir="auto">10.60.16.0/20</code>, …</li>
+</ul>
+<p>NAT is always a <strong>single</strong> gateway shared by all AZs — there is no per-AZ NAT HA option.</p>
+<div class="sl-heading-wrapper level-h3"><h3 id="outputs">Outputs</h3><a class="sl-anchor-link" href="#outputs"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Outputs”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody><tr><td><code dir="auto">vpc_id</code></td><td>The VPC id.</td></tr><tr><td><code dir="auto">vpc_cidr</code></td><td>The CIDR — handy for the engine’s <code dir="auto">allowed_cidr_blocks</code>.</td></tr><tr><td><code dir="auto">engine_subnet_id</code></td><td>Where the engine host should live: first private subnet in <code dir="auto">private-nat</code> mode, first public subnet otherwise.</td></tr><tr><td><code dir="auto">subnet_ids</code></td><td>All private subnets (<code dir="auto">private-nat</code>) or all public subnets (<code dir="auto">public</code>).</td></tr><tr><td><code dir="auto">associate_public_ip</code></td><td><code dir="auto">true</code> in <code dir="auto">public</code> mode — wire straight into the engine module’s <code dir="auto">associate_public_ip</code>.</td></tr></tbody></table>
+<aside aria-label="Note" class="starlight-aside starlight-aside--note"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 11a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0v-4a1 1 0 0 0-1-1Zm.38-3.92a1 1 0 0 0-.76 0 1 1 0 0 0-.33.21 1.15 1.15 0 0 0-.21.33 1 1 0 0 0 .21 1.09c.097.088.209.16.33.21A1 1 0 0 0 13 8a1.05 1.05 0 0 0-.29-.71 1 1 0 0 0-.33-.21ZM12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16.001A8 8 0 0 1 12 20Z"></path></svg>Note</p><div class="starlight-aside__content"><p>In <code dir="auto">public</code> mode there are no private subnets at all — anything you deploy into this VPC lives in a public subnet. Also note the console module requires a <strong>public</strong> subnet (it terminates HTTPS itself), so <code dir="auto">engine_subnet_id</code> only works for the console when the network runs in <code dir="auto">public</code> mode.</p></div></aside>
+<div class="sl-heading-wrapper level-h2"><h2 id="console-module">Console module</h2><a class="sl-anchor-link" href="#console-module"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Console module”</span></a></div>
+<p>Module path: <code dir="auto">packages/tendb/terraform/modules/aws/console</code>. Hosts the tendb web console — the same server <code dir="auto">tendb console</code> runs locally — on its own EC2 instance in-VPC next to the engine, behind Google login. See <a href="/tendb/guides/console/">The web console</a> for what the console does.</p>
+<figure class="diagram">
+<div class="scroll">
+<svg viewBox="0 0 1210 300" role="img" aria-label="Hosted console request chain: the browser reaches Caddy over HTTPS, oauth2-proxy enforces Google login, and the tendb console dials the engine over direct in-VPC TCP — no SSM tunnels" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="terraform-network-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0 0 10 5 0 10z" fill="currentColor"></path>
+</marker>
+</defs>
+<rect x="24" y="150" width="104" height="56" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5"></rect>
+<text x="76" y="183" text-anchor="middle" font-weight="600">browser</text>
+<line x1="128" y1="178" x2="228" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"></line>
+<text x="164" y="168" text-anchor="middle">HTTPS</text>
+<text x="196" y="40" font-size="11" letter-spacing="1.5" fill-opacity="0.6">VPC</text>
+<rect x="192" y="48" width="994" height="228" rx="10" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="6 5"></rect>
+<rect x="216" y="76" width="700" height="176" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"></rect>
+<text x="232" y="104" font-size="14" font-weight="600">console host <tspan font-size="12" font-weight="400" fill-opacity="0.62">— its own EC2 instance</tspan></text>
+<rect x="232" y="120" width="164" height="116" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"></rect>
+<text x="248" y="146" font-weight="600">Caddy</text>
+<rect x="248" y="156" width="76" height="26" rx="13" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-opacity="0.25"></rect>
+<text x="286" y="173" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">:80/:443</text>
+<text x="248" y="206" font-size="12" fill-opacity="0.62">automatic Let's Encrypt</text>
+<line x1="396" y1="178" x2="464" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"></line>
+<text x="432" y="168" text-anchor="middle" font-size="12">HTTP</text>
+<rect x="468" y="120" width="176" height="116" rx="8" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-opacity="0.22"></rect>
+<text x="484" y="146" font-weight="600">oauth2-proxy</text>
+<rect x="484" y="156" width="114" height="26" rx="13" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-opacity="0.25"></rect>
+<text x="541" y="173" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">:4180 loopback</text>
+<text x="484" y="206" font-size="12" fill-opacity="0.62">Google provider</text>
+<text x="484" y="224" font-size="12" fill-opacity="0.62">email-domain allow-list</text>
+<line x1="644" y1="178" x2="724" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"></line>
+<text x="686" y="168" text-anchor="middle" font-size="11">authenticated</text>
+<rect x="728" y="120" width="172" height="116" rx="8" fill="var(--sl-color-accent)" fill-opacity="0.06" stroke="var(--sl-color-accent)" stroke-opacity="0.7"></rect>
+<text x="744" y="146" font-weight="600" fill="var(--sl-color-accent)">tendb console</text>
+<rect x="744" y="156" width="144" height="26" rx="13" fill="var(--sl-color-accent)" fill-opacity="0.12" stroke="var(--sl-color-accent)" stroke-opacity="0.7"></rect>
+<text x="816" y="173" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="var(--sl-color-accent)">:4400 loopback only</text>
+<line x1="900" y1="178" x2="1026" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#terraform-network-arrow)"></line>
+<text x="968" y="168" text-anchor="middle" font-size="12">direct TCP</text>
+<text x="968" y="196" text-anchor="middle" font-size="11" fill-opacity="0.62">no SSM tunnels</text>
+<rect x="1030" y="146" width="132" height="64" rx="10" fill="currentColor" fill-opacity="0.03" stroke="currentColor" stroke-opacity="0.35"></rect>
+<text x="1096" y="172" text-anchor="middle" font-weight="600">engine host</text>
+<text x="1096" y="192" text-anchor="middle" font-size="12" fill-opacity="0.62">DBLab API <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">:2345</tspan></text>
+</svg>
+</div>
+<figcaption>TLS ends at Caddy and identity at oauth2-proxy before a request reaches the console, which dials the engine directly in-VPC — no SSM tunnels.</figcaption>
+</figure>
+<p>The DBLab verification token, clone credentials, and AWS access stay on the console host; the browser only ever sees the authenticated console UI. The host is a <code dir="auto">t3.small</code> (by default) running Ubuntu 24.04, IMDSv2-only, no SSH — admin goes through SSM Session Manager. An Elastic IP gives it a stable address. Cost: roughly <strong>$18/mo</strong> (t3.small + EIP + 16 GB gp3).</p>
+<p>The security group opens 80/443 to <code dir="auto">0.0.0.0/0</code> by design — the auth boundary is oauth2-proxy, not the network.</p>
+<div class="sl-heading-wrapper level-h3"><h3 id="prerequisites">Prerequisites</h3><a class="sl-anchor-link" href="#prerequisites"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Prerequisites”</span></a></div>
+<p>Three one-time, manual steps before you can apply:</p>
+<ol>
+<li>
+<p><strong>A Google OAuth client</strong> — created by hand in the Google Cloud console (Web application type; this step cannot be terraformed). Add <code dir="auto">https://&#x3C;domain>/oauth2/callback</code> as an authorized redirect URI (also available afterwards as the <code dir="auto">oauth_redirect_uri</code> output). Store it in Secrets Manager as JSON:</p>
+<div class="expressive-code"><link rel="stylesheet" href="/tendb/_astro/ec.w36nc.css"><script type="module" src="/tendb/_astro/ec.0vx5m.js"></script><figure class="frame is-terminal not-content"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="bash"><code><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">aws</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">secretsmanager</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">create-secret</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--name</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">tendb/console-oauth</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#F78C6C;--1:#AA0982">\</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#82AAFF;--1:#3B61B0">--secret-string</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#D9F5DD;--1:#111111">'</span><span style="--0:#ECC48D;--1:#984E4D">{"client_id":"...","client_secret":"..."}</span><span style="--0:#D9F5DD;--1:#111111">'</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="aws secretsmanager create-secret --name tendb/console-oauth \  --secret-string &#x27;{&#x22;client_id&#x22;:&#x22;...&#x22;,&#x22;client_secret&#x22;:&#x22;...&#x22;}&#x27;"><div></div></button></div></figure></div>
+<p>The host pulls the secret at boot — it never transits Terraform state.</p>
+</li>
+<li>
+<p><strong>A domain.</strong> Either pass a Route53 <code dir="auto">hosted_zone_id</code> (the module manages the A record), or create the record shown in the <code dir="auto">required_dns_record</code> output at your DNS provider. Caddy retries certificate issuance until the name resolves.</p>
+</li>
+<li>
+<p><strong>The tendb package.</strong> Either run <code dir="auto">pnpm pack</code> in the CLI package and pass the tarball path, or set <code dir="auto">npm_package_spec = "@10play/tendb@x.y.z"</code>. Exactly one of the two must be set (validated).</p>
+</li>
+</ol>
+<div class="sl-heading-wrapper level-h3"><h3 id="inputs-1">Inputs</h3><a class="sl-anchor-link" href="#inputs-1"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Inputs”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">name</code></td><td><code dir="auto">string</code></td><td><code dir="auto">"tendb-console"</code></td><td>Names the SG, role, instance profile, instance, and package bucket prefix.</td></tr><tr><td><code dir="auto">vpc_id</code></td><td><code dir="auto">string</code></td><td>— (required)</td><td>VPC for the console host.</td></tr><tr><td><code dir="auto">subnet_id</code></td><td><code dir="auto">string</code></td><td>— (required)</td><td><strong>Must be a public subnet</strong> — the console terminates HTTPS itself on 80/443.</td></tr><tr><td><code dir="auto">instance_type</code></td><td><code dir="auto">string</code></td><td><code dir="auto">"t3.small"</code></td><td>Node + Caddy + oauth2-proxy need more than 1 GB of RAM.</td></tr><tr><td><code dir="auto">tags</code></td><td><code dir="auto">map(string)</code></td><td><code dir="auto">{}</code></td><td>Extra tags.</td></tr><tr><td><code dir="auto">domain</code></td><td><code dir="auto">string</code></td><td>— (required)</td><td>FQDN the console is served on. Also determines the OAuth redirect URI <code dir="auto">https://&#x3C;domain>/oauth2/callback</code>.</td></tr><tr><td><code dir="auto">hosted_zone_id</code></td><td><code dir="auto">string</code></td><td><code dir="auto">null</code></td><td>Route53 zone for the A record. <code dir="auto">null</code> means DNS is managed elsewhere — create the <code dir="auto">required_dns_record</code> yourself.</td></tr><tr><td><code dir="auto">acme_email</code></td><td><code dir="auto">string</code></td><td>— (required)</td><td>Contact email for Let’s Encrypt registration.</td></tr><tr><td><code dir="auto">oauth_secret_arn</code></td><td><code dir="auto">string</code></td><td>— (required)</td><td>Secrets Manager secret with the Google OAuth client JSON (<code dir="auto">{"client_id": "...", "client_secret": "..."}</code>). Pulled by the host at boot.</td></tr><tr><td><code dir="auto">allowed_email_domains</code></td><td><code dir="auto">list(string)</code></td><td><code dir="auto">["10play.dev"]</code></td><td>Google account domains allowed through (oauth2-proxy <code dir="auto">--email-domain</code>). <strong>Override this</strong> — the default is 10play’s own domain.</td></tr><tr><td><code dir="auto">oauth2_proxy_version</code></td><td><code dir="auto">string</code></td><td><code dir="auto">"7.8.1"</code></td><td>oauth2-proxy release to install.</td></tr><tr><td><code dir="auto">package_tarball_path</code></td><td><code dir="auto">string</code></td><td><code dir="auto">null</code></td><td>Local path to the <code dir="auto">pnpm pack</code> output. Uploaded to a private S3 bucket, installed at boot, and updated in place.</td></tr><tr><td><code dir="auto">npm_package_spec</code></td><td><code dir="auto">string</code></td><td><code dir="auto">null</code></td><td>npm spec to install instead of a tarball, e.g. <code dir="auto">@10play/tendb@0.1.0</code>. Exactly one of <code dir="auto">package_tarball_path</code> / <code dir="auto">npm_package_spec</code> must be set.</td></tr><tr><td><code dir="auto">engine_ssm_prefix</code></td><td><code dir="auto">string</code></td><td>— (required)</td><td>The engine module’s <code dir="auto">ssm_prefix</code> output — the console discovers the engine host, token, and dbname from it.</td></tr><tr><td><code dir="auto">console_port</code></td><td><code dir="auto">number</code></td><td><code dir="auto">4400</code></td><td>Loopback port the console server listens on behind oauth2-proxy.</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="outputs-1">Outputs</h3><a class="sl-anchor-link" href="#outputs-1"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Outputs”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody><tr><td><code dir="auto">url</code></td><td><code dir="auto">https://&#x3C;domain></code>.</td></tr><tr><td><code dir="auto">public_ip</code></td><td>The EIP’s public IP.</td></tr><tr><td><code dir="auto">instance_id</code></td><td>Console instance id.</td></tr><tr><td><code dir="auto">security_group_id</code></td><td>Pass into the engine’s <code dir="auto">allowed_security_group_ids</code> so the console can reach the API and clone ports.</td></tr><tr><td><code dir="auto">required_dns_record</code></td><td><code dir="auto">"&#x3C;domain>. 300 IN A &#x3C;eip>"</code> when <code dir="auto">hosted_zone_id</code> is <code dir="auto">null</code>, else <code dir="auto">null</code>.</td></tr><tr><td><code dir="auto">oauth_redirect_uri</code></td><td><code dir="auto">https://&#x3C;domain>/oauth2/callback</code> — add as an authorized redirect URI on the Google OAuth client.</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h3"><h3 id="connecting-the-console-to-the-engine">Connecting the console to the engine</h3><a class="sl-anchor-link" href="#connecting-the-console-to-the-engine"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Connecting the console to the engine”</span></a></div>
+<p>Two things must be true:</p>
+<ul>
+<li><strong>Discovery and credentials.</strong> Pass <code dir="auto">engine_ssm_prefix = module.engine.ssm_prefix</code>. The console re-reads <code dir="auto">host</code>, <code dir="auto">verification-token</code>, and <code dir="auto">dbname</code> (plus optional <code dir="auto">replication/*</code> URLs) from SSM on <strong>every service start</strong>, then dials the engine’s DBLab API directly at <code dir="auto">http://&#x3C;engine-private-ip>:2345</code> — no SSM tunnels. Because the env is fetched at service start, a token rotation or engine replacement only needs <code dir="auto">systemctl restart tendb-console</code> (via SSM) on the console host.</li>
+<li><strong>Network admission.</strong> The engine’s SG must admit the console: either the console’s subnet is covered by the engine’s <code dir="auto">allowed_cidr_blocks</code> (the standalone example’s VPC-CIDR rule covers this), or pass this module’s <code dir="auto">security_group_id</code> output into the engine’s <code dir="auto">allowed_security_group_ids</code>.</li>
+</ul>
+<div class="sl-heading-wrapper level-h3"><h3 id="releases-and-instance-replacement">Releases and instance replacement</h3><a class="sl-anchor-link" href="#releases-and-instance-replacement"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Releases and instance replacement”</span></a></div>
+<p>In <strong>tarball mode</strong>, an on-host updater polls the package’s S3 ETag every 15 seconds; when you repack and <code dir="auto">terraform apply</code>, the new tarball is installed and the console restarted in place (~20 seconds) — no instance replacement, no certificate churn. In <strong>npm mode</strong> there is no updater: upgrading means changing <code dir="auto">npm_package_spec</code>, which changes user-data and replaces the instance.</p>
+<aside aria-label="Caution" class="starlight-aside starlight-aside--caution"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 16a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm10.67 1.47-8.05-14a3 3 0 0 0-5.24 0l-8 14A3 3 0 0 0 3.94 22h16.12a3 3 0 0 0 2.61-4.53Zm-1.73 2a1 1 0 0 1-.88.51H3.94a1 1 0 0 1-.88-.51 1 1 0 0 1 0-1l8-14a1 1 0 0 1 1.78 0l8.05 14a1 1 0 0 1 .05 1.02v-.02ZM12 8a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V9a1 1 0 0 0-1-1Z"></path></svg>Caution</p><div class="starlight-aside__content"><p>The console instance has <code dir="auto">user_data_replace_on_change = true</code>. Changing any variable rendered into user-data — <code dir="auto">domain</code>, <code dir="auto">acme_email</code>, <code dir="auto">allowed_email_domains</code>, <code dir="auto">console_port</code>, <code dir="auto">oauth2_proxy_version</code>, or switching between tarball and npm delivery — <strong>replaces the instance</strong>: a fresh Let’s Encrypt issuance, a new session cookie secret, and everyone re-authenticates. Nothing durable is lost, but plan access-list edits accordingly.</p></div></aside>
+<div class="sl-heading-wrapper level-h2"><h2 id="examples">Examples</h2><a class="sl-anchor-link" href="#examples"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Examples”</span></a></div>
+<p>All three live under <code dir="auto">packages/tendb/terraform/examples/</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Example</th><th>Choose it when</th></tr></thead><tbody><tr><td><code dir="auto">standalone</code></td><td>Fresh AWS account / greenfield. Network + engine, optionally a hosted console (dedicated instance or co-hosted on the engine).</td></tr><tr><td><code dir="auto">existing-vpc</code></td><td>You already have a VPC and network posture; you only need the engine, with clients admitted by security group.</td></tr><tr><td><code dir="auto">aurora-source</code></td><td>You are rehearsing (or templating) streaming sync where Aurora is the production source, feeding the engine by logical replication.</td></tr></tbody></table>
+<aside aria-label="Danger" class="starlight-aside starlight-aside--danger"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 7a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V8a1 1 0 0 0-1-1Zm0 8a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm9.71-7.44-5.27-5.27a1.05 1.05 0 0 0-.71-.29H8.27a1.05 1.05 0 0 0-.71.29L2.29 7.56a1.05 1.05 0 0 0-.29.71v7.46c.004.265.107.518.29.71l5.27 5.27c.192.183.445.286.71.29h7.46a1.05 1.05 0 0 0 .71-.29l5.27-5.27a1.05 1.05 0 0 0 .29-.71V8.27a1.05 1.05 0 0 0-.29-.71ZM20 15.31 15.31 20H8.69L4 15.31V8.69L8.69 4h6.62L20 8.69v6.62Z"></path></svg>Danger</p><div class="starlight-aside__content"><p>The checked-in <code dir="auto">terraform.tfvars</code> files in <code dir="auto">standalone</code> and <code dir="auto">aurora-source</code> are the <strong>maintainer’s live stack pins</strong> — real ARNs, AMI IDs, IPs, and 10play-specific domains. They are safe to commit (no secrets) but wrong for you. Replace every value before applying. The same goes for the default <code dir="auto">allowed_email_domains = ["10play.dev"]</code>.</p></div></aside>
+<div class="sl-heading-wrapper level-h3"><h3 id="examplesstandalone--greenfield-network--engine--optional-console"><code dir="auto">examples/standalone</code> — greenfield network + engine (+ optional console)</h3><a class="sl-anchor-link" href="#examplesstandalone--greenfield-network--engine--optional-console"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “examples/standalone — greenfield network + engine (+ optional console)”</span></a></div>
+<p>Provisions:</p>
+<ul>
+<li>The <strong>network module</strong> with all defaults (<code dir="auto">public</code> mode).</li>
+<li>The <strong>engine module</strong>, wired to the network outputs: <code dir="auto">allowed_cidr_blocks = [module.network.vpc_cidr]</code> (in-VPC clients — the CLI tunnels via SSM regardless), <code dir="auto">create_client_iam_policy = true</code>, plus pass-throughs for <code dir="auto">size</code>, <code dir="auto">postgres_major_version</code>, the source secret, <code dir="auto">dump_exclude_extensions</code>, <code dir="auto">sync_target_port</code>, <code dir="auto">streaming_snapshots</code>, and <code dir="auto">ami_id</code>.</li>
+<li>Optionally, a console in one of two hosting modes:
+<ul>
+<li><strong>Dedicated console</strong> (<code dir="auto">enable_console = true</code>): instantiates <code dir="auto">modules/aws/console</code> as <code dir="auto">&#x3C;name>-console</code> in the network’s engine subnet (public in the default network mode).</li>
+<li><strong>Console-on-engine</strong> (<code dir="auto">console_on_engine = true</code>): the cheapest hosting — no second instance. Terraform owns a dedicated console EIP (held at the root so the URL, OAuth redirect, and certificate name survive stack changes), the package S3 bucket the on-host updater polls, and an extra IAM policy on the engine role (package read, OAuth secret read, and <code dir="auto">ssm:PutParameter</code> on the console-writable subtrees). It also sets <code dir="auto">console_ingress = true</code> on the engine, which opens 80/443 as SG rules without touching user-data. The console software itself is installed <strong>out of band</strong> over SSM by <code dir="auto">terraform/scripts/engine-console-install.sh</code>, because the engine’s user-data is frozen.</li>
+</ul>
+</li>
+</ul>
+<p>The source secret is created out of band so the URL never lands in Terraform state:</p>
+<div class="expressive-code"><figure class="frame is-terminal not-content"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="bash"><code><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">aws</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">secretsmanager</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">create-secret</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--name</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">tendb/source-url</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#F78C6C;--1:#AA0982">\</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#82AAFF;--1:#3B61B0">--secret-string</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#D9F5DD;--1:#111111">'</span><span style="--0:#ECC48D;--1:#984E4D">postgres://user:pass@host:5432/dbname</span><span style="--0:#D9F5DD;--1:#111111">'</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="aws secretsmanager create-secret --name tendb/source-url \  --secret-string &#x27;postgres://user:pass@host:5432/dbname&#x27;"><div></div></button></div></figure></div>
+<p>Key variables: <code dir="auto">name</code> (<code dir="auto">"tendb"</code>), <code dir="auto">region</code> (<code dir="auto">"eu-north-1"</code>), <code dir="auto">size</code> (<code dir="auto">"small"</code>), <code dir="auto">postgres_major_version</code> (required), <code dir="auto">source_secret_arn</code> (required), <code dir="auto">source_secret_json_key</code>, <code dir="auto">dump_exclude_extensions</code>, <code dir="auto">enable_console</code>, <code dir="auto">console_on_engine</code>, console wiring (<code dir="auto">console_domain</code>, <code dir="auto">hosted_zone_id</code>, <code dir="auto">acme_email</code>, <code dir="auto">oauth_secret_arn</code>, <code dir="auto">allowed_email_domains</code>, <code dir="auto">package_tarball_path</code>, <code dir="auto">console_instance_type</code> — default <code dir="auto">"t3.small"</code>), <code dir="auto">sync_target_port</code>, <code dir="auto">streaming_snapshots</code>, and <code dir="auto">engine_ami_id</code>.</p>
+<aside aria-label="Caution" class="starlight-aside starlight-aside--caution"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 16a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm10.67 1.47-8.05-14a3 3 0 0 0-5.24 0l-8 14A3 3 0 0 0 3.94 22h16.12a3 3 0 0 0 2.61-4.53Zm-1.73 2a1 1 0 0 1-.88.51H3.94a1 1 0 0 1-.88-.51 1 1 0 0 1 0-1l8-14a1 1 0 0 1 1.78 0l8.05 14a1 1 0 0 1 .05 1.02v-.02ZM12 8a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V9a1 1 0 0 0-1-1Z"></path></svg>Caution</p><div class="starlight-aside__content"><p>Pin <code dir="auto">engine_ami_id</code> for any deployment you keep. Left <code dir="auto">null</code>, the engine tracks Canonical’s <em>current</em> Ubuntu 24.04 AMI, and an AMI bump <strong>replaces the engine and destroys the ZFS pool</strong>. Likewise, pass the source secret ARN without the Secrets Manager random suffix — switching ARN forms later changes engine user-data and replaces the instance.</p></div></aside>
+<p>Outputs: <code dir="auto">instance_id</code>, <code dir="auto">ssm_prefix</code> (point your <code dir="auto">tendb.json</code>’s <code dir="auto">ssmPrefix</code> here — see <a href="/tendb/reference/configuration/">Configuration</a>), <code dir="auto">cli_discovery</code> (the engine’s <code dir="auto">ssm_parameter_names</code> map), <code dir="auto">client_iam_policy_arn</code>, <code dir="auto">console_url</code>, <code dir="auto">console_oauth_redirect_uri</code>, <code dir="auto">console_public_ip</code>, <code dir="auto">pkg_bucket</code>.</p>
+<aside aria-label="Note" class="starlight-aside starlight-aside--note"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 11a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0v-4a1 1 0 0 0-1-1Zm.38-3.92a1 1 0 0 0-.76 0 1 1 0 0 0-.33.21 1.15 1.15 0 0 0-.21.33 1 1 0 0 0 .21 1.09c.097.088.209.16.33.21A1 1 0 0 0 13 8a1.05 1.05 0 0 0-.29-.71 1 1 0 0 0-.33-.21ZM12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16.001A8 8 0 0 1 12 20Z"></path></svg>Note</p><div class="starlight-aside__content"><p><code dir="auto">scripts/engine-console-install.sh</code> is the maintainer’s live migration script with hard-coded deployment constants (region, domain, bucket, email domain). It documents the console-on-engine runtime shape — including memory guardrails for the shared box (ZFS ARC capped at 1 GB, a 2 GB swapfile on the root volume, and a memory-capped console unit so the console dies before the engine ever does) — but you must edit its constants before reusing it.</p></div></aside>
+<div class="sl-heading-wrapper level-h3"><h3 id="examplesexisting-vpc--engine-only-into-an-existing-vpc"><code dir="auto">examples/existing-vpc</code> — engine-only into an existing VPC</h3><a class="sl-anchor-link" href="#examplesexisting-vpc--engine-only-into-an-existing-vpc"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “examples/existing-vpc — engine-only into an existing VPC”</span></a></div>
+<p>Provisions just the <strong>engine module</strong> — no network, no console. It demonstrates the per-knob override pattern on top of a preset:</p>
+<ul>
+<li><code dir="auto">size = "small"</code> with <code dir="auto">data_volume_gb = 50</code> and <code dir="auto">postgres_configs = { work_mem = "48MB" }</code></li>
+<li>A custom <code dir="auto">ssm_prefix</code> (e.g. <code dir="auto">/tendb-poc/dblab</code>) to stay compatible with an existing consumer fleet</li>
+<li>Clients admitted via <code dir="auto">allowed_security_group_ids</code>; no public IP (the engine module’s private-subnet defaults apply)</li>
+</ul>
+<p>Variables: <code dir="auto">name</code> (<code dir="auto">"tendb"</code>), <code dir="auto">region</code> (<code dir="auto">"eu-north-1"</code>), <code dir="auto">vpc_id</code> (required), <code dir="auto">subnet_id</code> (required), <code dir="auto">allowed_security_group_ids</code> (<code dir="auto">[]</code>), <code dir="auto">postgres_major_version</code> (required), <code dir="auto">source_secret_arn</code> (required), <code dir="auto">source_secret_json_key</code> (<code dir="auto">null</code>), <code dir="auto">ssm_prefix</code> (<code dir="auto">null</code> → the engine default <code dir="auto">/&#x3C;name></code>). Single output: <code dir="auto">cli_discovery</code>.</p>
+<p>Choose it when your network posture already exists, clients are other workloads identified by security group, or you need a nonstandard SSM prefix.</p>
+<div class="sl-heading-wrapper level-h3"><h3 id="examplesaurora-source--aurora-as-the-streaming-source"><code dir="auto">examples/aurora-source</code> — Aurora as the streaming source</h3><a class="sl-anchor-link" href="#examplesaurora-source--aurora-as-the-streaming-source"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “examples/aurora-source — Aurora as the streaming source”</span></a></div>
+<p>A minimal, disposable Aurora Serverless v2 PostgreSQL cluster that plays the customer’s production database and <strong>streams every change into the engine via logical replication</strong>. It has its own Terraform state — nothing in it touches the standalone example’s resources.</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">Aurora (publisher) ── logical replication, seconds ──▶ sync-target Postgres</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#d6deeb;--1:#403f53">    </span></span><span style="--0:#d6deeb;--1:#403f53">(a postgres:18 container ON the engine host, :5433,</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#d6deeb;--1:#403f53">     </span></span><span style="--0:#d6deeb;--1:#403f53">data directory on the ZFS pool)</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#d6deeb;--1:#403f53">        </span></span><span style="--0:#d6deeb;--1:#403f53">│  zfs snapshot — O(1), seconds at any size</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#d6deeb;--1:#403f53">        </span></span><span style="--0:#d6deeb;--1:#403f53">▼</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#d6deeb;--1:#403f53">    </span></span><span style="--0:#d6deeb;--1:#403f53">pool snapshots ──▶ branches (as-of-now via --fresh)</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="Aurora (publisher) ── logical replication, seconds ──▶ sync-target Postgres    (a postgres:18 container ON the engine host, :5433,     data directory on the ZFS pool)        │  zfs snapshot — O(1), seconds at any size        ▼    pool snapshots ──▶ branches (as-of-now via --fresh)"><div></div></button></div></figure></div>
+<p>Aurora’s storage engine permits no physical replication exit, so logical replication is the only streaming option. With <code dir="auto">streaming_snapshots = true</code> on the engine, there is no dump/restore cycle at all — the engine host runs <code dir="auto">tendb-snapshotd</code>, taking O(1) ZFS snapshots of the live sync target. See <a href="/tendb/concepts/data-refresh/">Data refresh lifecycle</a>.</p>
+<p><strong>What it provisions:</strong></p>
+<ul>
+<li>An Aurora PostgreSQL cluster in the <strong>default VPC</strong>: Serverless v2 scaling <code dir="auto">min_capacity = 0, max_capacity = 1</code>, one <code dir="auto">db.serverless</code> writer with <code dir="auto">publicly_accessible = true</code> (that is how the engine host’s public IP and your operator machine reach it), <code dir="auto">storage_encrypted</code>, <code dir="auto">skip_final_snapshot</code>.</li>
+<li>A cluster parameter group setting <code dir="auto">rds.logical_replication = "1"</code> (static parameter; a brand-new cluster picks it up on first provision — verify with <code dir="auto">show wal_level</code>).</li>
+<li>A security group admitting 5432 from <code dir="auto">client_cidrs</code> (engine host + hosted console) and <code dir="auto">admin_cidrs</code> (operator access).</li>
+<li>An SSM SecureString <code dir="auto">&#x3C;engine_ssm_prefix>/replication/publisher-url</code> with the full publisher connection URL (<code dir="auto">sslmode=require</code>) — published under the engine’s prefix on purpose so the hosted console’s existing read policy already covers it.</li>
+</ul>
+<p>The 5433 sync-target ingress rule on the <strong>engine’s</strong> SG is <em>not</em> created here — the engine module owns its SG rules exclusively. Set <code dir="auto">sync_target_port = 5433</code> when applying the standalone example instead.</p>
+<p>Variables: <code dir="auto">name</code> (<code dir="auto">"tendb-aurora-source"</code>), <code dir="auto">region</code> (<code dir="auto">"eu-north-1"</code>), <code dir="auto">engine_version</code> (<code dir="auto">"18.4"</code> — keep the major aligned with the subscriber), <code dir="auto">database</code> (<code dir="auto">"tendb"</code>), <code dir="auto">engine_ssm_prefix</code> (<code dir="auto">"/tendb"</code>), <code dir="auto">client_cidrs</code> (<code dir="auto">[]</code>), <code dir="auto">admin_cidrs</code> (<code dir="auto">[]</code>). Outputs: <code dir="auto">endpoint</code>, <code dir="auto">database</code>, <code dir="auto">publisher_url_ssm_parameter</code>, <code dir="auto">security_group_id</code>.</p>
+<p>The example’s <code dir="auto">sql/</code> directory carries the wire-up pieces, and its README walks the ordered sequence: seed Aurora from the legacy source (<code dir="auto">seed.sh</code>), create the publication and replication role on Aurora (<code dir="auto">publisher.sql</code> — grants <code dir="auto">rds_replication</code>, RDS’s substitute for <code dir="auto">REPLICATION</code>), run the sync-target container on the engine host, seed it from Aurora, subscribe it (<code dir="auto">subscriber.sql</code>, <code dir="auto">copy_data = false</code>), publish the subscriber URL to SSM yourself, and repoint the engine’s source at the sync target. <code dir="auto">loadgen.sh</code> generates demo traffic so you can watch changes flow.</p>
+<aside aria-label="Caution" class="starlight-aside starlight-aside--caution"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 16a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm10.67 1.47-8.05-14a3 3 0 0 0-5.24 0l-8 14A3 3 0 0 0 3.94 22h16.12a3 3 0 0 0 2.61-4.53Zm-1.73 2a1 1 0 0 1-.88.51H3.94a1 1 0 0 1-.88-.51 1 1 0 0 1 0-1l8-14a1 1 0 0 1 1.78 0l8.05 14a1 1 0 0 1 .05 1.02v-.02ZM12 8a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V9a1 1 0 0 0-1-1Z"></path></svg>Caution</p><div class="starlight-aside__content"><p>Three things to respect with this pipeline:</p><ul>
+<li><strong>The engine host’s IP is not an EIP.</strong> After any engine stop/start, re-apply the example with the new IP in <code dir="auto">client_cidrs</code> or replication cannot reconnect.</li>
+<li><strong>The cluster never auto-pauses</strong> — the active replication slot holds a connection open despite the auto-pause setting. Budget roughly a $45/mo ceiling at 1 ACU, and <code dir="auto">terraform destroy</code> when done rehearsing.</li>
+<li><strong>DDL does not replicate.</strong> Apply schema changes on Aurora first, then on the sync target, then resume writes. And <code dir="auto">copy_data = false</code> is only correct because the sync target was seeded from Aurora with nothing writing in between — breaking that ordering silently loses rows.</li>
+</ul></div></aside>
+<aside aria-label="Note" class="starlight-aside starlight-aside--note"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 11a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0v-4a1 1 0 0 0-1-1Zm.38-3.92a1 1 0 0 0-.76 0 1 1 0 0 0-.33.21 1.15 1.15 0 0 0-.21.33 1 1 0 0 0 .21 1.09c.097.088.209.16.33.21A1 1 0 0 0 13 8a1.05 1.05 0 0 0-.29-.71 1 1 0 0 0-.33-.21ZM12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16.001A8 8 0 0 1 12 20Z"></path></svg>Note</p><div class="starlight-aside__content"><p>Unlike the engine’s source-secret discipline, this example’s generated Aurora master password <strong>does</strong> live in its Terraform state — acceptable for a disposable rehearsal stack, not for production.</p></div></aside>
+<div class="sl-heading-wrapper level-h2"><h2 id="cost-summary">Cost summary</h2><a class="sl-anchor-link" href="#cost-summary"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore="">Section titled “Cost summary”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Piece</th><th>Monthly cost</th></tr></thead><tbody><tr><td>Network, <code dir="auto">public</code> mode</td><td>~$3.65 (public IP)</td></tr><tr><td>Network, <code dir="auto">private-nat</code> mode</td><td><del>$33 + $0.045/GB of dump traffic (</del>$135 at 100 GB nightly)</td></tr><tr><td>Dedicated console</td><td>~$18 (t3.small + EIP + 16 GB gp3)</td></tr><tr><td>Console-on-engine</td><td>$0 extra compute (shares the engine host; EIP only)</td></tr><tr><td>Aurora rehearsal stack</td><td>~$45 ceiling at 1 ACU (never auto-pauses while the replication slot is active)</td></tr></tbody></table>
+<p>Engine host costs depend on the <a href="/tendb/reference/terraform-engine/#size-presets">size preset</a> you pick.</p></div><footer class="sl-flex astro-zr3ifjdv"><div class="meta sl-flex astro-zr3ifjdv"><a href="https://github.com/10play/tendb/edit/main/apps/docs/src/content/docs/reference/terraform-network.md" class="sl-flex print:hidden astro-2jhp74la"><svg aria-hidden="true" class="astro-2jhp74la astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a></div><div class="pagination-links print:hidden astro-zjseyi3d" dir="ltr"><a href="/tendb/reference/terraform-engine/" rel="prev" class="astro-zjseyi3d"><svg aria-hidden="true" class="astro-zjseyi3d astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span class="astro-zjseyi3d">Previous<br class="astro-zjseyi3d"><span class="link-title astro-zjseyi3d">Terraform: engine module</span></span></a><a href="/tendb/comparison/neon-parity/" rel="next" class="astro-zjseyi3d"><svg aria-hidden="true" class="astro-zjseyi3d astro-jc46bh2q" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span class="astro-zjseyi3d">Next<br class="astro-zjseyi3d"><span class="link-title astro-zjseyi3d">Neon parity</span></span></a></div></footer><div class="built-by sl-flex astro-jo6i4kqk"><a href="https://10play.dev" rel="noopener" class="astro-jo6i4kqk">Built by<svg viewBox="0 10 232 208" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="astro-jo6i4kqk"><g fill="#ff0a54" class="astro-jo6i4kqk"><path d="m140.14 123.75-24.96 41.56c-12.44 20.71 2.48 47.08 26.64 47.08h49.93c24.16 0 39.08-26.37 26.64-47.08l-24.96-41.56c-12.07-20.1-41.21-20.1-53.28 0z" class="astro-jo6i4kqk"></path><path d="m18.17 206.07c-17.37-9.64-23.32-30.97-13.3-47.66l72.6-120.87c10.04-16.71 32.28-22.43 49.67-12.78 17.37 9.64 23.32 30.97 13.3 47.66l-72.6 120.86c-10.04 16.71-32.28 22.43-49.67 12.78z" class="astro-jo6i4kqk"></path></g></svg><span class="astro-jo6i4kqk">10play</span></a><span class="dot astro-jo6i4kqk" aria-hidden="true">·</span><a href="/tendb/llms.txt" rel="noopener" class="astro-jo6i4kqk">llms.txt</a></div></div></div></main></div></div></div></div></body></html>
