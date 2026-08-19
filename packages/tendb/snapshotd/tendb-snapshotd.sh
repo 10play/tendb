@@ -28,6 +28,7 @@ POOL="${TENDB_ZPOOL:-dblab_pool}"
 ENGINE_CONTAINER="${TENDB_ENGINE_CONTAINER:-dblab_server}"
 
 mkdir -p "$STATE_DIR"
+SYNC_ERROR="" # last sync_schema failure, "" = success (set -u safety)
 log() { echo "[tendb-snapshotd] $(date -u +%FT%TZ) $*"; }
 
 param() { pf_get_param "$1" 2>/dev/null || true; }
@@ -72,47 +73,72 @@ prune_snapshots() {
 
 # ---- schema reconcile ------------------------------------------------------
 
-list_tables() { # $1=url → "schema.table" lines (public-ish app schemas only)
-  psql "$1" -Atc "SELECT schemaname || '.' || tablename FROM pg_tables
+list_tables() { # $1=url → quoted "schema.table" lines (public-ish app schemas only)
+  # quote_ident so mixed-case names (Prisma's "Coupon") survive the round-trip
+  # into pg_dump -t patterns and DROP statements, which down-case bare names.
+  psql "$1" -Atc "SELECT quote_ident(schemaname) || '.' || quote_ident(tablename) FROM pg_tables
                   WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-                  ORDER BY 1" 2>/dev/null
+                  ORDER BY 1"
 }
 
 refresh_subscription() {
   local sub="$1" name
   name=$(psql "$sub" -Atc "SELECT subname FROM pg_subscription LIMIT 1" 2>/dev/null)
-  [ -n "$name" ] && psql "$sub" -Atc "ALTER SUBSCRIPTION \"$name\" REFRESH PUBLICATION" >/dev/null 2>&1
+  [ -n "$name" ] || return 0
+  # Errors if any published relation is still absent downstream — that means
+  # a create above failed and the stream is still stalled, so say so.
+  psql "$sub" -Atc "ALTER SUBSCRIPTION \"$name\" REFRESH PUBLICATION" >/dev/null \
+    || { log "warn: REFRESH PUBLICATION failed (stream still stalled?)"; return 1; }
 }
 
-sync_schema() { # $1 = "additive" | "full"
+sync_schema() { # $1 = "additive" | "full" — sets SYNC_ERROR ("" = success)
   local mode="$1" pub sub
+  SYNC_ERROR=""
   pub=$(publisher_url); sub=$(subscriber_url)
-  [ -n "$pub" ] && [ -n "$sub" ] || { log "schema sync skipped (replication URLs not configured)"; return 0; }
+  [ -n "$pub" ] && [ -n "$sub" ] || {
+    log "schema sync skipped (replication URLs not configured)"
+    SYNC_ERROR="replication URLs not configured"
+    return 1
+  }
 
   local pub_tables sub_tables missing orphaned
-  pub_tables=$(list_tables "$pub") || return 0
-  sub_tables=$(list_tables "$sub") || return 0
+  pub_tables=$(list_tables "$pub") || { SYNC_ERROR="cannot reach the publisher from snapshotd"; return 1; }
+  sub_tables=$(list_tables "$sub") || { SYNC_ERROR="cannot reach the sync target from snapshotd"; return 1; }
   missing=$(comm -23 <(echo "$pub_tables") <(echo "$sub_tables"))
   orphaned=$(comm -13 <(echo "$pub_tables") <(echo "$sub_tables"))
 
   if [ -n "$missing" ]; then
     log "creating missing tables: $(echo "$missing" | tr '\n' ' ')"
     # Schema only — logical replication back-fills rows after the refresh.
+    # stderr stays on the daemon's log: a silent create failure leaves the
+    # stream stalled with WAL piling up on the publisher.
     echo "$missing" | while read -r t; do
-      [ -n "$t" ] && pg_dump "$pub" --schema-only --no-owner --no-privileges -t "$t" 2>/dev/null
-    done | psql "$sub" >/dev/null 2>&1 || log "warn: some missing tables failed to create"
+      [ -n "$t" ] && pg_dump "$pub" --schema-only --no-owner --no-privileges -t "$t"
+    done | psql "$sub" >/dev/null || {
+      log "warn: some missing tables failed to create"
+      SYNC_ERROR="some missing tables failed to create (see snapshotd logs)"
+    }
   fi
 
   if [ "$mode" = "full" ] && [ -n "$orphaned" ]; then
     log "dropping orphaned tables: $(echo "$orphaned" | tr '\n' ' ')"
     echo "$orphaned" | while read -r t; do
-      [ -n "$t" ] && psql "$sub" -Atc "DROP TABLE IF EXISTS $t CASCADE" >/dev/null 2>&1
+      [ -n "$t" ] && psql "$sub" -Atc "DROP TABLE IF EXISTS $t CASCADE" >/dev/null
     done
   fi
 
   if [ -n "$missing" ] || { [ "$mode" = "full" ] && [ -n "$orphaned" ]; }; then
-    refresh_subscription "$sub"
+    refresh_subscription "$sub" \
+      || SYNC_ERROR="${SYNC_ERROR:-REFRESH PUBLICATION failed (see snapshotd logs)}"
   fi
+  [ -z "$SYNC_ERROR" ]
+}
+
+report_sync_result() { # $1=nonce $2=error ("" = success) → schema/sync-result
+  pf_put_param schema/sync-result \
+    "$(jq -nc --arg nonce "$1" --arg error "$2" \
+        'if $error == "" then {nonce: $nonce, ok: true} else {nonce: $nonce, ok: false, error: $error} end')" \
+    || log "warn: could not write schema/sync-result"
 }
 
 # ---- main loop -------------------------------------------------------------
@@ -142,6 +168,9 @@ while true; do
   if nonce_changed schema/sync-request last-sync-request; then
     log "full schema sync requested"
     sync_schema full
+    # Always answer the nonce — the CLI fails fast on {ok:false} instead of
+    # polling drift until its timeout.
+    report_sync_result "$(cat "$STATE_DIR/last-sync-request")" "$SYNC_ERROR"
   fi
 
   config=$(param snapshots/config)

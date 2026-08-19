@@ -25,6 +25,10 @@ resource "docker_container" "snapshotd" {
   image      = docker_image.snapshotd.image_id
   privileged = true
   restart    = "unless-stopped"
+  # The replication URLs in params.json say 127.0.0.1 (the VM's published
+  # ports); on the default bridge that resolves to the container itself and
+  # every psql/pg_dump silently fails. Host networking makes them reachable.
+  network_mode = "host"
 
   env = [
     "TENDB_PARAM_PREFIX=${local.param_prefix}",
