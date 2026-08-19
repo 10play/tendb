@@ -76,10 +76,41 @@ export async function requestSchemaSync(params: ParamStore, ssmPrefix: string): 
   return nonce;
 }
 
+/** Daemon's answer to a sync-request nonce (schema/sync-result param). */
+export interface SchemaSyncResult {
+  nonce: string;
+  ok: boolean;
+  error?: string;
+}
+
+async function readSyncResult(params: ParamStore, ssmPrefix: string): Promise<SchemaSyncResult | null> {
+  const raw = await params.getParameter(`${ssmPrefix}/schema/sync-result`);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<SchemaSyncResult>;
+    return typeof value?.nonce === "string" && typeof value?.ok === "boolean"
+      ? (value as SchemaSyncResult)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function describeDrift(drift: SchemaDiff): string {
+  const parts: string[] = [];
+  if (drift.missing.length > 0) parts.push(`missing on sync target: ${drift.missing.join(", ")}`);
+  if (drift.orphaned.length > 0) parts.push(`only on sync target: ${drift.orphaned.join(", ")}`);
+  if (drift.mismatched.length > 0) parts.push(`columns differ: ${drift.mismatched.join(", ")}`);
+  return parts.join(" · ");
+}
+
 /**
- * Force a full reconcile (missing tables created, orphans dropped, mismatched
- * tables rebuilt, publication refreshed, error counters reset) and wait until
- * the drift reads clean.
+ * Force a full reconcile (missing tables created, orphans dropped,
+ * publication refreshed) and wait until the drift reads clean. The daemon
+ * answers the request nonce via schema/sync-result, so a failed sync (e.g.
+ * snapshotd cannot reach a database) surfaces its reason within a poll or
+ * two instead of hanging to the timeout; drift the daemon cannot heal
+ * (column mismatches need DDL) fails fast with what remains.
  */
 export async function forceSchemaSync(
   params: ParamStore,
@@ -89,14 +120,25 @@ export async function forceSchemaSync(
 ): Promise<SchemaDiff> {
   const timeoutMs = opts.timeoutMs ?? 120_000;
   const pollMs = opts.pollMs ?? 3_000;
-  await requestSchemaSync(params, ssmPrefix);
+  const nonce = await requestSchemaSync(params, ssmPrefix);
 
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     await new Promise((r) => setTimeout(r, pollMs));
+    const result = await readSyncResult(params, ssmPrefix);
+    const answered = result?.nonce === nonce; // stale answers belong to older requests
+    if (answered && !result.ok) {
+      throw new UsageError("schema sync failed on the engine host", result.error ?? "no detail");
+    }
     const drift = await schemaDrift(urls).catch(() => null);
     if (drift && drift.missing.length === 0 && drift.orphaned.length === 0 && drift.mismatched.length === 0) {
       return drift;
+    }
+    if (answered && drift) {
+      throw new UsageError(
+        "schema sync ran but drift remains (column drift needs manual DDL on the sync target)",
+        describeDrift(drift),
+      );
     }
     if (Date.now() > deadline) {
       throw new TimeoutError(

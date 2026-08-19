@@ -32,6 +32,7 @@ Not created by terraform; read/written at runtime by the CLI, console, and
 | `snapshots/request` | no | nonce `req-<epoch>-<hex8>`; any new value means "snapshot now". CLI/console → snapshotd |
 | `schema/config` | no | `{"autoSync":<bool>}`. CLI/console → snapshotd |
 | `schema/sync-request` | no | nonce `sync-<epoch>-<hex8>`; any new value means "full schema sync now". CLI/console → snapshotd |
+| `schema/sync-result` | no | `{"nonce":<request nonce>,"ok":true}` or `{"nonce":...,"ok":false,"error":"..."}`; the daemon's answer to the last sync-request, matched by nonce so stale answers are ignored. snapshotd → CLI/console |
 | `alerts/slack-webhook` | yes | https URL, or the literal `"none"` sentinel (stores may not accept empty values). console ↔ console |
 | `console-url` | no | public console URL for Slack deep links; `"none"` sentinel. operator → console |
 | `replication/publisher-url` | yes | full Postgres URL of the upstream publisher. terraform/operator → CLI/console |
