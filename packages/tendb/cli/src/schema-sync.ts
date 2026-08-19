@@ -11,13 +11,13 @@ import {
  * Schema reconciliation for streaming deployments. DDL never replicates, so
  * the sync target drifts silently; the engine host's daemon can heal it —
  * additively on its own (auto-sync), fully on demand (force sync, which also
- * drops orphaned tables). Driven by two SSM parameters:
+ * drops orphaned tables, columns, and indexes). Driven by two SSM parameters:
  *   <prefix>/schema/config        {"autoSync": true}
  *   <prefix>/schema/sync-request  nonce — a new value means "full sync now"
  */
 
 export interface SchemaSyncConfig {
-  /** Daemon heals additive drift (missing tables) on its own every ~minute. */
+  /** Daemon heals additive drift (missing tables, columns, indexes) every ~minute. */
   autoSync: boolean;
 }
 
@@ -66,7 +66,12 @@ export async function schemaDrift(urls: {
       status.publisher?.error ?? status.subscriber?.error ?? "one side did not answer",
     );
   }
-  return diffSchemas(status.publisher.tables, status.subscriber.tables);
+  return diffSchemas(
+    status.publisher.tables,
+    status.subscriber.tables,
+    status.publisher.indexes,
+    status.subscriber.indexes,
+  );
 }
 
 /** Fire a full-sync request without waiting (async callers poll schemaDrift). */
@@ -101,16 +106,27 @@ function describeDrift(drift: SchemaDiff): string {
   if (drift.missing.length > 0) parts.push(`missing on sync target: ${drift.missing.join(", ")}`);
   if (drift.orphaned.length > 0) parts.push(`only on sync target: ${drift.orphaned.join(", ")}`);
   if (drift.mismatched.length > 0) parts.push(`columns differ: ${drift.mismatched.join(", ")}`);
+  if (drift.indexesDiffer.length > 0) parts.push(`indexes differ: ${drift.indexesDiffer.join(", ")}`);
   return parts.join(" · ");
 }
 
+function isClean(drift: SchemaDiff): boolean {
+  return (
+    drift.missing.length === 0 &&
+    drift.orphaned.length === 0 &&
+    drift.mismatched.length === 0 &&
+    drift.indexesDiffer.length === 0
+  );
+}
+
 /**
- * Force a full reconcile (missing tables created, orphans dropped,
- * publication refreshed) and wait until the drift reads clean. The daemon
- * answers the request nonce via schema/sync-result, so a failed sync (e.g.
- * snapshotd cannot reach a database) surfaces its reason within a poll or
- * two instead of hanging to the timeout; drift the daemon cannot heal
- * (column mismatches need DDL) fails fast with what remains.
+ * Force a full reconcile (missing tables/columns/indexes created, orphans
+ * dropped, publication refreshed) and wait until the drift reads clean. The
+ * daemon answers the request nonce via schema/sync-result, so a failed sync
+ * (e.g. snapshotd cannot reach a database) surfaces its reason within a poll
+ * or two instead of hanging to the timeout; drift the daemon cannot heal
+ * (column type changes and renames need manual DDL) fails fast with what
+ * remains.
  */
 export async function forceSchemaSync(
   params: ParamStore,
@@ -131,12 +147,12 @@ export async function forceSchemaSync(
       throw new UsageError("schema sync failed on the engine host", result.error ?? "no detail");
     }
     const drift = await schemaDrift(urls).catch(() => null);
-    if (drift && drift.missing.length === 0 && drift.orphaned.length === 0 && drift.mismatched.length === 0) {
+    if (drift && isClean(drift)) {
       return drift;
     }
     if (answered && drift) {
       throw new UsageError(
-        "schema sync ran but drift remains (column drift needs manual DDL on the sync target)",
+        "schema sync ran but drift remains (column type changes and renames need manual DDL on the sync target)",
         describeDrift(drift),
       );
     }

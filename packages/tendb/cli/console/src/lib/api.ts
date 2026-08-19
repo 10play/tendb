@@ -328,9 +328,13 @@ export const api = {
   /** Fire-and-return; poll `schemaDrift()` until inSync. */
   schemaSync: () => postJson<{ started: boolean }>("/api/schema/sync"),
   schemaDrift: () =>
-    request<{ missing: string[]; orphaned: string[]; mismatched: string[]; inSync: boolean }>(
-      "/api/schema/drift",
-    ),
+    request<{
+      missing: string[];
+      orphaned: string[];
+      mismatched: string[];
+      indexesDiffer: string[];
+      inSync: boolean;
+    }>("/api/schema/drift"),
   saveSchemaConfig: (config: { autoSync: boolean }) =>
     request<{ config: { autoSync: boolean } }>("/api/schema/config", {
       method: "PUT",

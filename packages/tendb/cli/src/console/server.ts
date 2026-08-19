@@ -378,7 +378,9 @@ export class ConsoleServer {
       const drift = await schemaDrift(await this.resolveReplication());
       return {
         ...drift,
-        inSync: drift.missing.length + drift.orphaned.length + drift.mismatched.length === 0,
+        inSync:
+          drift.missing.length + drift.orphaned.length + drift.mismatched.length + drift.indexesDiffer.length ===
+          0,
       };
     });
   }

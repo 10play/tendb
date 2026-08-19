@@ -246,12 +246,19 @@ describe("schema-drift", () => {
   const withSchemas = (
     pub: Record<string, string>,
     sub: Record<string, string>,
+    pubIndexes?: Record<string, string>,
+    subIndexes?: Record<string, string>,
   ): CheckupInputs => ({
     ...healthyInputs(),
     latestSnapshotAt: "20260817113000",
     replication: {
       configured: true,
-      publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }], tables: pub },
+      publisher: {
+        connected: true,
+        slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }],
+        tables: pub,
+        indexes: pubIndexes,
+      },
       subscriber: {
         connected: true,
         subscriptions: [
@@ -266,6 +273,7 @@ describe("schema-drift", () => {
           },
         ],
         tables: sub,
+        indexes: subIndexes,
       },
       measuredAt: "",
     },
@@ -284,5 +292,20 @@ describe("schema-drift", () => {
     expect(findings[0]!.message).toContain("added");
     expect(findings[0]!.message).toContain("dropped");
     expect(findings[0]!.message).toContain("a");
+  });
+
+  it("flags index drift on a table whose columns match", () => {
+    const findings = evaluateCheckup(
+      withSchemas({ a: "x" }, { a: "x" }, { a: "idx-new" }, {}),
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ code: "schema-drift", severity: "warning", value: 1 });
+    expect(findings[0]!.message).toContain("indexes differ: a");
+  });
+
+  it("stays silent when index fingerprints match", () => {
+    expect(
+      evaluateCheckup(withSchemas({ a: "x" }, { a: "x" }, { a: "same" }, { a: "same" })),
+    ).toEqual([]);
   });
 });

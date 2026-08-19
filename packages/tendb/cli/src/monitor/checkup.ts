@@ -267,7 +267,12 @@ export function evaluateCheckup(
     // DDL never replicates, so schema drift is silent until rows hit a
     // missing relation — surface it as soon as the fingerprints diverge.
     if (repl.publisher?.tables && repl.subscriber?.tables) {
-      const drift = diffSchemas(repl.publisher.tables, repl.subscriber.tables);
+      const drift = diffSchemas(
+        repl.publisher.tables,
+        repl.subscriber.tables,
+        repl.publisher.indexes,
+        repl.subscriber.indexes,
+      );
       const parts: string[] = [];
       if (drift.missing.length > 0) {
         parts.push(`missing on sync target: ${drift.missing.join(", ")} (first write pauses the stream)`);
@@ -278,12 +283,19 @@ export function evaluateCheckup(
       if (drift.mismatched.length > 0) {
         parts.push(`columns differ: ${drift.mismatched.join(", ")}`);
       }
+      if (drift.indexesDiffer.length > 0) {
+        parts.push(`indexes differ: ${drift.indexesDiffer.join(", ")} (branches run without them)`);
+      }
       if (parts.length > 0) {
         findings.push({
           code: "schema-drift",
           severity: "warning",
           message: parts.join(" · "),
-          value: drift.missing.length + drift.orphaned.length + drift.mismatched.length,
+          value:
+            drift.missing.length +
+            drift.orphaned.length +
+            drift.mismatched.length +
+            drift.indexesDiffer.length,
         });
       }
     }
