@@ -76,7 +76,7 @@ describe("evaluateCheckup", () => {
     expect(
       repl({
         configured: true,
-        publisher: { connected: true, slots: [{ name: "s", active: false, lagBytes: 1 }] },
+        publisher: { connected: true, slots: [{ name: "s", active: false, lagBytes: 1, walRetainedBytes: null }] },
         subscriber: {
           connected: true,
           subscriptions: [
@@ -105,7 +105,7 @@ describe("evaluateCheckup", () => {
         configured: true,
         publisher: {
           connected: true,
-          slots: [{ name: "s", active: true, lagBytes: DEFAULT_THRESHOLDS.replicationLagBytes + 1 }],
+          slots: [{ name: "s", active: true, lagBytes: DEFAULT_THRESHOLDS.replicationLagBytes + 1, walRetainedBytes: null }],
         },
         measuredAt: "",
       }),
@@ -115,7 +115,7 @@ describe("evaluateCheckup", () => {
     expect(
       repl({
         configured: true,
-        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0 }] },
+        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }] },
         subscriber: {
           connected: true,
           subscriptions: [
@@ -148,7 +148,7 @@ describe("streaming staleness default", () => {
       latestSnapshotAt: "20260817090000",
       replication: {
         configured: true,
-        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0 }] },
+        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }] },
         measuredAt: "",
       },
     };
@@ -164,7 +164,7 @@ describe("streaming data clock", () => {
     inputs.status!.pools![0]!.dataStateAt = "20260810000000"; // frozen a week ago
     inputs.replication = {
       configured: true,
-      publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0 }] },
+      publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }] },
       measuredAt: "",
     };
     // Fresh snapshot 30min ago → silent despite the ancient pool field.
@@ -251,7 +251,7 @@ describe("schema-drift", () => {
     latestSnapshotAt: "20260817113000",
     replication: {
       configured: true,
-      publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0 }], tables: pub },
+      publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }], tables: pub },
       subscriber: {
         connected: true,
         subscriptions: [

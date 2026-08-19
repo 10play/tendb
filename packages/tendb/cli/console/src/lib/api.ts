@@ -137,6 +137,8 @@ export interface ReplicationSlot {
   name: string;
   active: boolean;
   lagBytes: number | null;
+  /** WAL kept on disk for this slot (restart_lsn → head) — grows while a slot stalls. */
+  walRetainedBytes: number | null;
 }
 
 export interface ReplicationPeer {

@@ -23,6 +23,12 @@ export interface PublisherSlot {
   active: boolean;
   /** WAL bytes the subscriber has not yet confirmed (0 = caught up). */
   lagBytes: number | null;
+  /**
+   * WAL bytes the publisher keeps on disk for this slot (restart_lsn → head).
+   * Grows without bound while a slot is stalled — the disk-pressure signal,
+   * distinct from lagBytes which resets as soon as the subscriber confirms.
+   */
+  walRetainedBytes: number | null;
 }
 
 export interface PublisherStatus {
@@ -108,6 +114,10 @@ export function normalizePublisher(
       name: String(s.slot_name),
       active: Boolean(s.active),
       lagBytes: s.lag_bytes === null || s.lag_bytes === undefined ? null : Number(s.lag_bytes),
+      walRetainedBytes:
+        s.wal_retained_bytes === null || s.wal_retained_bytes === undefined
+          ? null
+          : Number(s.wal_retained_bytes),
     })),
     peers: peerRows.map((p) => ({
       applicationName: p.application_name ?? null,
@@ -166,7 +176,8 @@ async function queryPublisher(url: string, includeSchema: boolean): Promise<Publ
       pool.query(`select pg_current_wal_lsn()::text as lsn`),
       pool.query(`
         select slot_name, active,
-               pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)::bigint as lag_bytes
+               pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)::bigint as lag_bytes,
+               pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)::bigint as wal_retained_bytes
         from pg_replication_slots
         where slot_type = 'logical'`),
       pool.query(`

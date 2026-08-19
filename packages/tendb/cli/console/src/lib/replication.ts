@@ -58,7 +58,7 @@ export function summarizeStreamHop(status: ReplicationStatus): HopSummary {
   const slots = pub?.slots ?? [];
   const activeSlot = slots.find((slot) => slot.active);
   if (slots.length > 0 && !activeSlot) {
-    const retained = slots[0]?.lagBytes;
+    const retained = slots[0]?.walRetainedBytes ?? slots[0]?.lagBytes;
     return {
       tone: "warn",
       label: "slot inactive",

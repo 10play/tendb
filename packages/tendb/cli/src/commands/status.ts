@@ -2,9 +2,20 @@ import type { Command } from "commander";
 import { printJson, printTable, progress } from "../output.js";
 import { globalOpts, withSession } from "./shared.js";
 import { clonePortCapacity } from "../context.js";
+import { fetchReplicationStatus } from "../console/replication.js";
+import { resolvePublisherUrl } from "../replication-urls.js";
 
 function gb(bytes: number | undefined): string {
   return bytes === undefined ? "-" : `${(bytes / 1024 ** 3).toFixed(1)}G`;
+}
+
+function bytes(value: number | null): string {
+  if (value === null) return "-";
+  if (value === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const exp = Math.min(units.length - 1, Math.floor(Math.log(Math.abs(value)) / Math.log(1024)));
+  const scaled = value / 1024 ** exp;
+  return `${scaled.toFixed(scaled >= 10 || exp === 0 ? 0 : 1)} ${units[exp]}`;
 }
 
 export function registerStatus(program: Command): void {
@@ -13,13 +24,19 @@ export function registerStatus(program: Command): void {
     .description("engine health, sync state, and clone capacity")
     .action(async (_opts: unknown, cmd: Command) => {
       await withSession(cmd, async (session) => {
-        const [healthy, status, capacity] = await Promise.all([
+        const [healthy, status, capacity, replication] = await Promise.all([
           session.client.healthz(),
           session.client.status(),
           clonePortCapacity(session),
+          // Publisher-side only: slot lag + retained WAL come from the
+          // publisher, and skipping the subscriber avoids opening a tunnel.
+          resolvePublisherUrl(session).then((url) =>
+            url ? fetchReplicationStatus(url, undefined) : null,
+          ),
         ]);
         const clones = status.cloning?.clones ?? [];
         const pool = status.pools?.[0];
+        const slots = replication?.publisher?.slots ?? [];
 
         if (globalOpts(cmd).output === "json") {
           printJson({
@@ -31,6 +48,7 @@ export function registerStatus(program: Command): void {
             pools: status.pools,
             clonesUsed: clones.length,
             cloneCapacity: capacity ?? null,
+            replication,
           });
           return;
         }
@@ -53,6 +71,20 @@ export function registerStatus(program: Command): void {
           ["clones", `${clones.length}${capacity ? ` / ${capacity}` : ""}`],
         ];
         printTable(["", ""], rows);
+        if (slots.length > 0) {
+          process.stdout.write("\n");
+          printTable(
+            ["replication slot", "state", "behind", "wal retained"],
+            slots.map((s) => [
+              s.name,
+              s.active ? "active" : "INACTIVE",
+              bytes(s.lagBytes),
+              bytes(s.walRetainedBytes),
+            ]),
+          );
+        } else if (replication?.publisher && !replication.publisher.connected) {
+          progress(`replication: publisher unreachable — ${replication.publisher.error ?? "unknown error"}`);
+        }
         if (clones.length > 0) {
           progress(`running: ${clones.map((c) => c.id).join(", ")}`);
         }
