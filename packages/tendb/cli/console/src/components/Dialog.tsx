@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "./Button";
 import { CloseIcon } from "./Icons";
 
@@ -91,6 +91,7 @@ export function ConfirmDialog({
   confirmLabel,
   destructive = false,
   busy = false,
+  typeToConfirm,
   onConfirm,
   onCancel,
 }: {
@@ -100,9 +101,21 @@ export function ConfirmDialog({
   confirmLabel: string;
   destructive?: boolean;
   busy?: boolean;
+  /** Require typing this exact word before the confirm button unlocks. */
+  typeToConfirm?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [typed, setTyped] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const blocked = typeToConfirm !== undefined && typed.trim() !== typeToConfirm;
+
+  useEffect(() => {
+    if (!open) setTyped("");
+    // Runs after Dialog's showModal effect, so this wins the focus race.
+    if (open && typeToConfirm) inputRef.current?.focus();
+  }, [open, typeToConfirm]);
+
   return (
     <Dialog
       open={open}
@@ -120,12 +133,34 @@ export function ConfirmDialog({
             variant={destructive ? "danger" : "primary"}
             onClick={onConfirm}
             busy={busy}
-            autoFocus
+            disabled={blocked}
+            autoFocus={!typeToConfirm}
           >
             {confirmLabel}
           </Button>
         </>
       }
-    />
+    >
+      {typeToConfirm ? (
+        <label className="flex flex-col gap-2">
+          <span className="text-[12.5px] text-dim">
+            Type <span className={`font-mono ${destructive ? "text-danger" : "text-ink"}`}>{typeToConfirm}</span> to
+            confirm.
+          </span>
+          <input
+            ref={inputRef}
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !blocked && !busy) onConfirm();
+            }}
+            placeholder={typeToConfirm}
+            spellCheck={false}
+            disabled={busy}
+            className="h-8 rounded-md border border-line-strong bg-canvas px-2.5 font-mono text-[13px] text-ink placeholder:text-faint focus:border-danger/60 focus:outline-none"
+          />
+        </label>
+      ) : null}
+    </Dialog>
   );
 }

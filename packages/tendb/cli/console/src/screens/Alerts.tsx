@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { ConfirmDialog } from "../components/Dialog";
 import { Spinner } from "../components/Spinner";
 import { useToast } from "../components/Toast";
 import { AlertIcon, CheckIcon } from "../components/Icons";
@@ -50,7 +51,6 @@ export function AlertsScreen() {
       </Card>
 
       <SchemaCard
-        autoSync={alerts.data?.schema.autoSync ?? false}
         drifted={Boolean(current?.findings.some((f) => f.code === "schema-drift"))}
         onChanged={() => void alerts.refetch()}
       />
@@ -125,19 +125,13 @@ function EventRow({ event, now }: { event: AlertEvent; now: number }) {
 
 /**
  * DDL never replicates: schema drift is silent until rows hit a missing
- * relation. Auto-heal lets the engine host create missing tables on its own;
- * Force sync is the full reconcile (also DROPS tables removed upstream).
+ * relation. Force sync is the full reconcile — it also DROPS tables removed
+ * upstream, so it sits behind a type-to-confirm dialog. Auto-heal is
+ * CLI-only: `tendb schema config --auto-sync on|off`.
  */
-function SchemaCard({
-  autoSync,
-  drifted,
-  onChanged,
-}: {
-  autoSync: boolean;
-  drifted: boolean;
-  onChanged: () => void;
-}) {
+function SchemaCard({ drifted, onChanged }: { drifted: boolean; onChanged: () => void }) {
   const toast = useToast();
+  const [confirming, setConfirming] = useState(false);
   // Fire-and-poll: the sync request returns instantly (oauth2-proxy cuts
   // long-held requests) and we watch the live drift until it reads clean.
   const [syncingSince, setSyncingSince] = useState<number | null>(null);
@@ -175,16 +169,6 @@ function SchemaCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncingSince]);
 
-  const save = useMutation({
-    mutationFn: (next: boolean) => api.saveSchemaConfig({ autoSync: next }),
-    onSuccess: (result) => {
-      onChanged();
-      toast.success(`Auto-heal ${result.config.autoSync ? "enabled" : "disabled"}`);
-    },
-    onError: (error) =>
-      toast.error("Save failed", error instanceof Error ? error.message : String(error)),
-  });
-
   return (
     <Card
       label="schema"
@@ -201,32 +185,33 @@ function SchemaCard({
       }
     >
       <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={autoSync}
-            disabled={save.isPending}
-            onChange={(event) => save.mutate(event.target.checked)}
-            className="accent-[var(--color-accent)]"
-          />
-          <span className="text-[12.5px] text-dim">
-            Auto-heal — create tables added upstream automatically (~1 min)
-          </span>
-        </label>
         <Button
           size="sm"
-          variant={drifted ? "primary" : "ghost"}
+          variant="danger"
           busy={sync.isPending || syncingSince !== null}
-          onClick={() => sync.mutate()}
+          onClick={() => setConfirming(true)}
         >
           Force schema sync
         </Button>
       </div>
       <p className="mt-2.5 text-[12px] leading-snug text-faint">
-        Migrations don't replicate — new tables drift silently until written to. Auto-heal
-        fixes additions on its own; Force sync is the full reconcile and also drops tables
-        that were removed upstream.
+        Migrations don't replicate — new tables drift silently until written to. Force sync
+        is the full reconcile: it creates tables added upstream and drops tables that were
+        removed, along with their data.
       </p>
+      <ConfirmDialog
+        open={confirming}
+        title="Force schema sync"
+        description="Full reconcile of the sync target's schema. Tables removed upstream are DROPPED here, including all their data. This cannot be undone."
+        confirmLabel="Force sync"
+        destructive
+        typeToConfirm="approve"
+        onConfirm={() => {
+          setConfirming(false);
+          sync.mutate();
+        }}
+        onCancel={() => setConfirming(false)}
+      />
     </Card>
   );
 }
