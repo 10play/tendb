@@ -1,6 +1,6 @@
 {
   "name": "@10play/tendb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Self-hosted Neon alternative — database branching for Postgres on infrastructure you own. CLI + web console for DBLab Engine on AWS, GCP, Azure, or local Docker.",
   "keywords": [
     "postgres",
