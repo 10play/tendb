@@ -401,7 +401,8 @@ function ScheduleCard() {
 
 function ReplicationCard({ status, now }: { status: ReplicationStatus; now: number }) {
   const hop = summarizeStreamHop(status);
-  const slot = status.publisher?.slots?.find((s) => s.active) ?? status.publisher?.slots?.[0];
+  const slots = status.publisher?.slots ?? [];
+  const slot = slots.find((s) => s.active) ?? slots[0];
   const subscription = status.subscriber?.subscriptions?.[0];
   const toneMap = { accent: "accent", warn: "warn", danger: "danger", dim: "dim" } as const;
 
@@ -415,7 +416,7 @@ function ReplicationCard({ status, now }: { status: ReplicationStatus; now: numb
         </span>
       }
     >
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <Stat label="stream" value={hop.label} detail={hop.detail ?? undefined} tone={toneMap[hop.tone]} />
         <Stat
           label="slot"
@@ -429,6 +430,11 @@ function ReplicationCard({ status, now }: { status: ReplicationStatus; now: numb
           detail={status.publisher?.currentLsn ? `head ${status.publisher.currentLsn}` : undefined}
         />
         <Stat
+          label="wal retained"
+          value={slot?.walRetainedBytes != null ? formatBytes(slot.walRetainedBytes) : "—"}
+          detail={slot ? "held on publisher disk" : undefined}
+        />
+        <Stat
           label="last message"
           value={subscription?.lastMessageAt ? formatAge(subscription.lastMessageAt, now) : "—"}
           detail={
@@ -439,6 +445,23 @@ function ReplicationCard({ status, now }: { status: ReplicationStatus; now: numb
           tone={subscription && subscription.applyErrors + subscription.syncErrors > 0 ? "warn" : "dim"}
         />
       </div>
+      {slots.length > 1 ? (
+        <div className="mt-4 border-t border-line pt-3">
+          <div className="label-eyebrow mb-2">slots</div>
+          <div className="flex flex-col gap-1.5">
+            {slots.map((s) => (
+              <div key={s.name} className="flex items-baseline gap-4 font-mono text-[12px]">
+                <span className="min-w-0 flex-1 truncate text-ink">{s.name}</span>
+                <span className={s.active ? "text-accent-ink" : "text-warn"}>
+                  {s.active ? "active" : "inactive"}
+                </span>
+                <span className="text-dim">{formatBytes(s.lagBytes)} behind</span>
+                <span className="text-dim">{formatBytes(s.walRetainedBytes)} retained</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {status.publisher?.error || status.subscriber?.error ? (
         <p className="mt-4 border-t border-line pt-3 font-mono text-[11.5px] break-words text-danger">
           {status.publisher?.error ?? status.subscriber?.error}

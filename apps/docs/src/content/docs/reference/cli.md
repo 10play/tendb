@@ -276,7 +276,7 @@ In exec mode without a branch name, the command runs against the API tunnel with
 tendb status
 ```
 
-Checks engine health, fetches `/status`, and reads clone capacity from the SSM port-pool parameter — all in parallel. The table shows:
+Checks engine health, fetches `/status`, reads clone capacity from the SSM port-pool parameter, and (when a replication publisher is configured) queries the publisher's replication slots — all in parallel. The table shows:
 
 | Row | Content |
 |---|---|
@@ -289,7 +289,9 @@ Checks engine health, fetches `/status`, and reads clone capacity from the SSM p
 | `disk` | `X.XG used / Y.YG (Z.ZG free)` |
 | `clones` | `n / cap` when the port-pool parameter exists, else bare `n` |
 
-Running clone ids are listed on stderr. JSON mode prints `{ healthy, transport, instanceId, engineVersion, retrieving, pools, clonesUsed, cloneCapacity }` (`cloneCapacity` is `null` when unknown).
+On streaming deployments a second table follows, one row per logical replication slot: `replication slot | state | behind | wal retained`. `behind` is WAL the subscriber hasn't confirmed yet (`confirmed_flush_lsn` → head); `wal retained` is WAL the publisher keeps on disk for that slot (`restart_lsn` → head) — the number that grows without bound while a slot is stalled.
+
+Running clone ids are listed on stderr. JSON mode prints `{ healthy, transport, instanceId, engineVersion, retrieving, pools, clonesUsed, cloneCapacity, replication }` (`cloneCapacity` is `null` when unknown; `replication` is `null` when no publisher is configured, and each slot carries `lagBytes` and `walRetainedBytes`).
 
 ## tendb migrate
 

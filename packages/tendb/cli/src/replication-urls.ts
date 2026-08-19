@@ -17,6 +17,21 @@ export interface ReplicationUrls {
   subscriberRemote: string | null;
 }
 
+/**
+ * Publisher URL only — the publisher is reachable directly (Aurora/Neon), so
+ * callers that just need slot telemetry can skip the subscriber tunnel dance.
+ */
+export async function resolvePublisherUrl(session: ApiSession): Promise<string | null> {
+  return (
+    session.config.replicationPublisherUrl ??
+    (session.params
+      ? await session.params
+          .getParameter(`${session.config.ssmPrefix}/replication/publisher-url`, true)
+          .catch(() => null)
+      : null)
+  );
+}
+
 export async function resolveReplicationUrls(
   session: ApiSession,
   opts: { onTunnelExit?: () => void } = {},
@@ -26,7 +41,7 @@ export async function resolveReplicationUrls(
     session.params
       ? await session.params.getParameter(`${cfg.ssmPrefix}/replication/${leaf}`, true).catch(() => null)
       : null;
-  const publisher = cfg.replicationPublisherUrl ?? (await fromParams("publisher-url"));
+  const publisher = await resolvePublisherUrl(session);
   const subscriberRemote = cfg.replicationSubscriberUrl ?? (await fromParams("subscriber-url"));
   let subscriber = subscriberRemote;
 
