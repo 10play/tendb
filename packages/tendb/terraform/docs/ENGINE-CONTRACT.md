@@ -30,6 +30,7 @@ Not created by terraform; read/written at runtime by the CLI, console, and
 |---|---|---|
 | `snapshots/config` | no | `{"intervalMinutes":<0..10080>,"retain":<1..500>}` (0 = manual). CLI/console → snapshotd |
 | `snapshots/request` | no | nonce `req-<epoch>-<hex8>`; any new value means "snapshot now". CLI/console → snapshotd |
+| `snapshots/last-converged` | no | `"yes"`/`"no"` — whether the replication stream had caught up when the newest snapshot was taken. `"no"` means branches cut from it may carry healed schema without the rows that explain it. snapshotd → CLI/console |
 | `schema/config` | no | `{"autoSync":<bool>}`. CLI/console → snapshotd |
 | `schema/sync-request` | no | nonce `sync-<epoch>-<hex8>`; any new value means "full schema sync now". CLI/console → snapshotd |
 | `schema/sync-result` | no | `{"nonce":<request nonce>,"ok":true}` or `{"nonce":...,"ok":false,"error":"..."}`; the daemon's answer to the last sync-request, matched by nonce so stale answers are ignored. snapshotd → CLI/console |

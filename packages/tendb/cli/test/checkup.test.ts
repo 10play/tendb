@@ -76,7 +76,7 @@ describe("evaluateCheckup", () => {
     expect(
       repl({
         configured: true,
-        publisher: { connected: true, slots: [{ name: "s", active: false, lagBytes: 1, walRetainedBytes: null }] },
+        publisher: { connected: true, slots: [{ name: "s", active: false, lagBytes: 1, walRetainedBytes: null, walStatus: null }] },
         subscriber: {
           connected: true,
           subscriptions: [
@@ -100,12 +100,39 @@ describe("evaluateCheckup", () => {
       { code: "slot-inactive", severity: "warning" },
     ]);
 
+    // WAL pinned on the publisher: the failure mode that can take production
+    // down or destroy the stream, so it escalates on its own axis.
+    const slot = (over: Partial<{ walStatus: string | null; walRetainedBytes: number | null }>) =>
+      repl({
+        configured: true,
+        publisher: {
+          connected: true,
+          slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null, walStatus: "reserved", ...over }],
+        },
+        measuredAt: "",
+      });
+
+    expect(slot({ walRetainedBytes: DEFAULT_THRESHOLDS.walRetainedWarnBytes + 1 })).toMatchObject([
+      { code: "wal-retained", severity: "warning" },
+    ]);
+    expect(slot({ walRetainedBytes: DEFAULT_THRESHOLDS.walRetainedCriticalBytes + 1 })).toMatchObject([
+      { code: "wal-retained", severity: "critical" },
+    ]);
+    expect(slot({ walStatus: "unreserved" })).toMatchObject([
+      { code: "slot-invalidated", severity: "critical", value: "unreserved" },
+    ]);
+    expect(slot({ walStatus: "lost" })).toMatchObject([
+      { code: "slot-invalidated", severity: "critical", value: "lost" },
+    ]);
+    // A healthy slot under the threshold says nothing.
+    expect(slot({ walRetainedBytes: DEFAULT_THRESHOLDS.walRetainedWarnBytes - 1 })).toEqual([]);
+
     expect(
       repl({
         configured: true,
         publisher: {
           connected: true,
-          slots: [{ name: "s", active: true, lagBytes: DEFAULT_THRESHOLDS.replicationLagBytes + 1, walRetainedBytes: null }],
+          slots: [{ name: "s", active: true, lagBytes: DEFAULT_THRESHOLDS.replicationLagBytes + 1, walRetainedBytes: null, walStatus: null }],
         },
         measuredAt: "",
       }),
@@ -115,7 +142,7 @@ describe("evaluateCheckup", () => {
     expect(
       repl({
         configured: true,
-        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }] },
+        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null, walStatus: null }] },
         subscriber: {
           connected: true,
           subscriptions: [
@@ -148,7 +175,7 @@ describe("streaming staleness default", () => {
       latestSnapshotAt: "20260817090000",
       replication: {
         configured: true,
-        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }] },
+        publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null, walStatus: null }] },
         measuredAt: "",
       },
     };
@@ -164,7 +191,7 @@ describe("streaming data clock", () => {
     inputs.status!.pools![0]!.dataStateAt = "20260810000000"; // frozen a week ago
     inputs.replication = {
       configured: true,
-      publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }] },
+      publisher: { connected: true, slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null, walStatus: null }] },
       measuredAt: "",
     };
     // Fresh snapshot 30min ago → silent despite the ancient pool field.
@@ -255,7 +282,7 @@ describe("schema-drift", () => {
       configured: true,
       publisher: {
         connected: true,
-        slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null }],
+        slots: [{ name: "s", active: true, lagBytes: 0, walRetainedBytes: null, walStatus: null }],
         tables: pub,
         indexes: pubIndexes,
       },

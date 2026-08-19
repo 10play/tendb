@@ -29,6 +29,13 @@ export interface PublisherSlot {
    * distinct from lagBytes which resets as soon as the subscriber confirms.
    */
   walRetainedBytes: number | null;
+  /**
+   * pg_replication_slots.wal_status: reserved → extended → unreserved → lost.
+   * `unreserved` means the slot is past max_slot_wal_keep_size and a
+   * checkpoint may invalidate it; `lost` means it already was, the WAL gap is
+   * permanent, and the sync target can only be recovered by a full reseed.
+   */
+  walStatus: string | null;
 }
 
 export interface PublisherStatus {
@@ -147,6 +154,7 @@ export function normalizePublisher(
         s.wal_retained_bytes === null || s.wal_retained_bytes === undefined
           ? null
           : Number(s.wal_retained_bytes),
+      walStatus: s.wal_status === null || s.wal_status === undefined ? null : String(s.wal_status),
     })),
     peers: peerRows.map((p) => ({
       applicationName: p.application_name ?? null,
@@ -204,7 +212,7 @@ async function queryPublisher(url: string, includeSchema: boolean): Promise<Publ
     const [lsn, slots, peers, schema, indexes] = await Promise.all([
       pool.query(`select pg_current_wal_lsn()::text as lsn`),
       pool.query(`
-        select slot_name, active,
+        select slot_name, active, wal_status,
                pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)::bigint as lag_bytes,
                pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)::bigint as wal_retained_bytes
         from pg_replication_slots

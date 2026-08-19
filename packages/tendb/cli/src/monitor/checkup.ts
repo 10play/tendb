@@ -26,6 +26,8 @@ export type FindingCode =
   | "slot-inactive"
   | "replication-lag"
   | "replication-stale"
+  | "wal-retained"
+  | "slot-invalidated"
   | "schema-drift";
 
 export interface Finding {
@@ -48,6 +50,10 @@ export interface CheckupThresholds {
   replicationLagBytes: number;
   /** Seconds since the subscriber last heard from the publisher. */
   replicationStaleSeconds: number;
+  /** WAL a slot may pin on the publisher's disk before warning. */
+  walRetainedWarnBytes: number;
+  /** …and before it is treated as a threat to the publisher itself. */
+  walRetainedCriticalBytes: number;
 }
 
 export const DEFAULT_THRESHOLDS: CheckupThresholds = {
@@ -57,7 +63,13 @@ export const DEFAULT_THRESHOLDS: CheckupThresholds = {
   capacityWarnRatio: 0.8,
   replicationLagBytes: 50 * 1024 * 1024,
   replicationStaleSeconds: 300,
+  walRetainedWarnBytes: 1024 * 1024 * 1024,
+  walRetainedCriticalBytes: 8 * 1024 * 1024 * 1024,
 };
+
+function formatGiB(bytes: number): string {
+  return `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
+}
 
 export interface CheckupInputs {
   healthy: boolean;
@@ -261,6 +273,50 @@ export function evaluateCheckup(
         message: `subscriber is ${activeSlot.lagBytes} bytes behind the publisher`,
         value: activeSlot.lagBytes,
         threshold: t.replicationLagBytes,
+      });
+    }
+
+    // Every unhealed drift, stalled apply, or disabled subscription ends the
+    // same way: the slot pins WAL on the PUBLISHER's disk. That is the one
+    // failure mode here that can take production down or destroy the stream
+    // outright, so it is reported on its own rather than inferred from lag.
+    const invalidated = slots.find((s) => s.walStatus === "lost");
+    const atRisk = slots.find((s) => s.walStatus === "unreserved");
+    if (invalidated) {
+      findings.push({
+        code: "slot-invalidated",
+        severity: "critical",
+        message: `replication slot ${invalidated.name} has been invalidated (wal_status=lost) — the missing WAL is gone for good and the sync target must be reseeded from the source`,
+        value: "lost",
+      });
+    } else if (atRisk) {
+      findings.push({
+        code: "slot-invalidated",
+        severity: "critical",
+        message: `replication slot ${atRisk.name} is past max_slot_wal_keep_size (wal_status=unreserved) — the next checkpoint can invalidate it and force a full reseed`,
+        value: "unreserved",
+      });
+    }
+
+    const retained = slots
+      .map((s) => s.walRetainedBytes)
+      .filter((b): b is number => b != null)
+      .sort((a, b) => b - a)[0];
+    if (retained != null && retained > t.walRetainedCriticalBytes) {
+      findings.push({
+        code: "wal-retained",
+        severity: "critical",
+        message: `replication slots are pinning ${formatGiB(retained)} of WAL on the publisher — free its disk before it fills`,
+        value: retained,
+        threshold: t.walRetainedCriticalBytes,
+      });
+    } else if (retained != null && retained > t.walRetainedWarnBytes) {
+      findings.push({
+        code: "wal-retained",
+        severity: "warning",
+        message: `replication slots are pinning ${formatGiB(retained)} of WAL on the publisher — the stream is not keeping up`,
+        value: retained,
+        threshold: t.walRetainedWarnBytes,
       });
     }
 

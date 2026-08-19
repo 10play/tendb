@@ -30,6 +30,11 @@ POLL_SECONDS="${POLL_SECONDS:-5}"
 AUTOSYNC_SECONDS="${AUTOSYNC_SECONDS:-60}"
 POOL="${TENDB_ZPOOL:-dblab_pool}"
 ENGINE_CONTAINER="${TENDB_ENGINE_CONTAINER:-dblab_server}"
+# A live publisher always has WAL past the subscriber's last applied byte, so
+# "caught up" is an epsilon, not zero. Scheduled snapshots wait this long for
+# the stream to converge before snapshotting a torn state anyway.
+CONVERGE_LAG_BYTES="${CONVERGE_LAG_BYTES:-1048576}"
+CONVERGE_MAX_WAIT_SECONDS="${CONVERGE_MAX_WAIT_SECONDS:-300}"
 
 mkdir -p "$STATE_DIR"
 SYNC_ERROR="" # last sync_schema failure, "" = success (set -u safety)
@@ -40,17 +45,85 @@ param() { pf_get_param "$1" 2>/dev/null || true; }
 subscriber_url() { param replication/subscriber-url; }
 publisher_url() { param replication/publisher-url; }
 
-take_snapshot() {
-  local sub
+# Sequence VALUES never replicate — only rows do. Left alone, every sequence
+# on the sync target sits wherever the seed left it (or at 1, for tables the
+# schema heal created via `pg_dump --schema-only`, which omits setval) while
+# replicated rows carry the publisher's much larger ids. Branches inherit
+# that, so the first INSERT on a clone collides with an existing key. Realign
+# right before the snapshot: that is the only state branches ever see.
+align_sequences() { # $1 = subscriber url
+  local sub="$1" stmts
+  # Owned sequences via pg_depend: deptype 'a' is serial, 'i' is an identity
+  # column — matching on name conventions misses the latter entirely.
+  stmts=$(psql "$sub" -Atc "
+    SELECT format('SELECT setval(%L, COALESCE((SELECT max(%I) FROM %s), 1), (SELECT max(%I) IS NOT NULL FROM %s));',
+                  s.oid::regclass::text, a.attname, t.oid::regclass::text,
+                  a.attname, t.oid::regclass::text)
+    FROM pg_class s
+    JOIN pg_depend d ON d.classid = 'pg_class'::regclass AND d.objid = s.oid AND d.deptype IN ('a', 'i')
+    JOIN pg_class t ON t.oid = d.refobjid
+    JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+    JOIN pg_namespace n ON n.oid = s.relnamespace
+    WHERE s.relkind = 'S' AND n.nspname NOT IN ('pg_catalog', 'information_schema')" 2>/dev/null)
+  [ -n "$stmts" ] || return 0
+  echo "$stmts" | psql "$sub" -q >/dev/null || log "warn: sequence alignment failed"
+}
+
+# Schema reaches the sync target out-of-band (the heal channel) while the rows
+# that go with it — including the migration tool's ledger inserts — arrive on
+# the replication stream. Snapshotting while the stream is behind freezes a
+# branch that has the new column but not the ledger row saying why, which
+# surfaces later as a bogus "column already exists" migration failure.
+stream_converged() { # 0 = subscriber has applied ~everything the publisher wrote
+  local pub sub sub_lsn lag
+  pub=$(publisher_url); sub=$(subscriber_url)
+  [ -n "$pub" ] && [ -n "$sub" ] || return 0 # not a streaming deployment
+
+  sub_lsn=$(psql "$sub" -Atc "SELECT latest_end_lsn FROM pg_stat_subscription WHERE relid IS NULL LIMIT 1" 2>/dev/null)
+  [ -n "$sub_lsn" ] || return 0 # no subscription — nothing to wait for
+
+  # Apply-error counters are cumulative and never reset, so they cannot gate
+  # this; a wedged stream shows up here as lag that keeps growing.
+  lag=$(psql "$pub" -Atc "SELECT pg_wal_lsn_diff(pg_current_wal_lsn(), '$sub_lsn')::bigint" 2>/dev/null)
+  [ -n "$lag" ] || return 1
+  [ "$lag" -le "$CONVERGE_LAG_BYTES" ] 2>/dev/null
+}
+
+take_snapshot() { # $1 = "scheduled" to wait for convergence; requests never wait
+  local mode="${1:-}" sub converged=yes waiting_since now
   sub=$(subscriber_url)
+
+  if ! stream_converged; then
+    converged=no
+    now=$(date -u +%s)
+    waiting_since=$(cat "$STATE_DIR/converge-waiting-since" 2>/dev/null || true)
+    if [ -z "$waiting_since" ]; then
+      waiting_since=$now
+      echo "$now" > "$STATE_DIR/converge-waiting-since"
+      log "stream behind — holding snapshots until it catches up (max ${CONVERGE_MAX_WAIT_SECONDS}s)"
+    fi
+    # An explicit request must still produce a snapshot: the CLI waits ~10 s
+    # for a fresh id after writing the nonce.
+    if [ "$mode" = "scheduled" ] && [ $((now - waiting_since)) -lt "$CONVERGE_MAX_WAIT_SECONDS" ]; then
+      return 0
+    fi
+    log "warn: snapshotting an unconverged stream — branches from it may carry healed schema without the rows that explain it"
+  fi
+  rm -f "$STATE_DIR/converge-waiting-since"
+
   if [ -n "$sub" ]; then
+    align_sequences "$sub"
     # Flush the sync target so the snapshot is crash-consistent at "now".
     psql "$sub" -Atc "CHECKPOINT" >/dev/null 2>&1 || log "warn: CHECKPOINT failed (continuing)"
   fi
   local name
   name="$POOL@snapshot_$(date -u +%Y%m%d%H%M%S)"
   if zfs snapshot "$name"; then
-    log "created $name"
+    log "created $name (converged=$converged)"
+    # Recorded on the snapshot itself and on the contract param so branch
+    # tooling can tell a torn base from a clean one.
+    zfs set "tendb:converged=$converged" "$name" 2>/dev/null || true
+    pf_put_param snapshots/last-converged "$converged" 2>/dev/null || true
     # The engine only lists pool snapshots after a rescan; a restart (~2 s) is
     # the reliable trigger on DLE 4.1.x.
     docker restart "$ENGINE_CONTAINER" >/dev/null 2>&1 || log "warn: engine restart failed"
@@ -132,6 +205,10 @@ sync_columns() { # $1=mode $2=pub-url $3=sub-url — appends to SYNC_ERROR
   add_keys=$(comm -23 <(echo "$pub_defs" | cut -d $'\x01' -f 1,2) <(echo "$sub_defs" | cut -d $'\x01' -f 1,2))
   drop_keys=$(comm -13 <(echo "$pub_defs" | cut -d $'\x01' -f 1,2) <(echo "$sub_defs" | cut -d $'\x01' -f 1,2))
 
+  # Tables where a NOT NULL add had to fall back to nullable this run; their
+  # orphan columns are held back from the drop pass below.
+  : > "$STATE_DIR/nullable-fallback"
+
   if [ -n "$add_keys" ]; then
     echo "$add_keys" | {
       ok=1
@@ -139,7 +216,22 @@ sync_columns() { # $1=mode $2=pub-url $3=sub-url — appends to SYNC_ERROR
         [ -n "$t" ] || continue
         frag=$(echo "$pub_defs" | awk -F $'\x01' -v t="$t" -v c="$col" '$1 == t && $2 == c { print $3; exit }')
         log "adding column $t.$col"
-        psql "$sub" -Atc "ALTER TABLE $t ADD COLUMN $frag" >/dev/null || { log "warn: could not add column $t.$col"; ok=0; }
+        psql "$sub" -Atc "ALTER TABLE $t ADD COLUMN $frag" >/dev/null && continue
+        # NOT NULL without a default cannot be added to a populated table —
+        # the usual cause is a column RENAME upstream, which diffs as
+        # drop+add. Add it nullable instead: that unblocks apply immediately,
+        # which is what stops the publisher's WAL from growing, and the
+        # column keeps reporting as drift (nullable here, NOT NULL upstream)
+        # until someone backfills it. Deliberately NOT auto-backfilled from
+        # the orphan column: same-type is not proof of a rename, and a wrong
+        # guess writes bad data every branch would then inherit.
+        nullable="${frag% NOT NULL}"
+        if [ "$nullable" != "$frag" ] && psql "$sub" -Atc "ALTER TABLE $t ADD COLUMN $nullable" >/dev/null; then
+          log "warn: added $t.$col as NULLABLE (NOT NULL rejected on a populated table — if this was a rename, the values are still in the column dropped upstream)"
+          echo "$t" >> "$STATE_DIR/nullable-fallback"
+        else
+          log "warn: could not add column $t.$col"; ok=0
+        fi
       done
       [ "$ok" = 1 ]
     } || SYNC_ERROR="${SYNC_ERROR:-some columns failed to sync (see snapshotd logs)}"
@@ -150,6 +242,12 @@ sync_columns() { # $1=mode $2=pub-url $3=sub-url — appends to SYNC_ERROR
       ok=1
       while IFS=$'\x01' read -r t col; do
         [ -n "$t" ] || continue
+        # Dropping here would destroy the only copy of a renamed column's
+        # data on the sync target.
+        if grep -qxF "$t" "$STATE_DIR/nullable-fallback" 2>/dev/null; then
+          log "keeping orphan column $t.$col — $t just took a nullable fallback and this may hold its values"
+          continue
+        fi
         log "dropping column $t.$col"
         psql "$sub" -Atc "ALTER TABLE $t DROP COLUMN $col" >/dev/null || { log "warn: could not drop column $t.$col"; ok=0; }
       done
@@ -300,7 +398,7 @@ while true; do
       now=$(date -u +%s)
       if [ $((now - last)) -ge $((interval * 60)) ]; then
         log "scheduled snapshot (every ${interval}m)"
-        take_snapshot
+        take_snapshot scheduled
       fi
     fi
     [ "$retain" -ge 1 ] 2>/dev/null && prune_snapshots "$retain"
