@@ -51,6 +51,7 @@ export function AlertsScreen() {
       </Card>
 
       <SchemaCard
+        autoSync={alerts.data?.schema.autoSync ?? false}
         drifted={Boolean(current?.findings.some((f) => f.code === "schema-drift"))}
         onChanged={() => void alerts.refetch()}
       />
@@ -125,13 +126,34 @@ function EventRow({ event, now }: { event: AlertEvent; now: number }) {
 
 /**
  * DDL never replicates: schema drift is silent until rows hit a missing
- * relation. Force sync is the full reconcile — it also DROPS tables removed
- * upstream, so it sits behind a type-to-confirm dialog. Auto-heal is
- * CLI-only: `tendb schema config --auto-sync on|off`.
+ * relation. Auto-heal lets the engine host apply additive changes (new
+ * tables, columns, indexes) on its own — automated DDL, so ENABLING it sits
+ * behind the same type-to-confirm as Force sync; disabling is instant.
+ * Force sync is the full reconcile — it also DROPS what was removed
+ * upstream, so it stays behind its own type-to-confirm dialog.
  */
-function SchemaCard({ drifted, onChanged }: { drifted: boolean; onChanged: () => void }) {
+function SchemaCard({
+  autoSync,
+  drifted,
+  onChanged,
+}: {
+  autoSync: boolean;
+  drifted: boolean;
+  onChanged: () => void;
+}) {
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
+  const [confirmingAutoHeal, setConfirmingAutoHeal] = useState(false);
+
+  const saveAutoSync = useMutation({
+    mutationFn: (next: boolean) => api.saveSchemaConfig({ autoSync: next }),
+    onSuccess: (result) => {
+      onChanged();
+      toast.success(`Auto-heal ${result.config.autoSync ? "enabled" : "disabled"}`);
+    },
+    onError: (error) =>
+      toast.error("Save failed", error instanceof Error ? error.message : String(error)),
+  });
   // Fire-and-poll: the sync request returns instantly (oauth2-proxy cuts
   // long-held requests) and we watch the live drift until it reads clean.
   const [syncingSince, setSyncingSince] = useState<number | null>(null);
@@ -185,6 +207,23 @@ function SchemaCard({ drifted, onChanged }: { drifted: boolean; onChanged: () =>
       }
     >
       <div className="flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={autoSync}
+            disabled={saveAutoSync.isPending}
+            onChange={(event) => {
+              // Enabling hands the daemon standing DDL authority — confirm it
+              // like Force sync. Disabling just turns automation off.
+              if (event.target.checked) setConfirmingAutoHeal(true);
+              else saveAutoSync.mutate(false);
+            }}
+            className="accent-[var(--color-accent)]"
+          />
+          <span className="text-[12.5px] text-dim">
+            Auto-heal — create tables, columns, and indexes added upstream (~1 min)
+          </span>
+        </label>
         <Button
           size="sm"
           variant="danger"
@@ -195,9 +234,9 @@ function SchemaCard({ drifted, onChanged }: { drifted: boolean; onChanged: () =>
         </Button>
       </div>
       <p className="mt-2.5 text-[12px] leading-snug text-faint">
-        Migrations don't replicate — new tables drift silently until written to. Force sync
-        is the full reconcile: it creates tables added upstream and drops tables that were
-        removed, along with their data.
+        Migrations don't replicate — new tables drift silently until written to. Auto-heal
+        fixes additions on its own and never drops anything; Force sync is the full
+        reconcile and also drops tables, columns, and indexes that were removed upstream.
       </p>
       <ConfirmDialog
         open={confirming}
@@ -211,6 +250,18 @@ function SchemaCard({ drifted, onChanged }: { drifted: boolean; onChanged: () =>
           sync.mutate();
         }}
         onCancel={() => setConfirming(false)}
+      />
+      <ConfirmDialog
+        open={confirmingAutoHeal}
+        title="Enable auto-heal"
+        description="The engine host will apply additive DDL to the sync target on its own, about once a minute: tables, columns, and indexes added upstream are created here automatically. It never drops anything — removals still need Force sync."
+        confirmLabel="Enable auto-heal"
+        typeToConfirm="approve"
+        onConfirm={() => {
+          setConfirmingAutoHeal(false);
+          saveAutoSync.mutate(true);
+        }}
+        onCancel={() => setConfirmingAutoHeal(false)}
       />
     </Card>
   );
