@@ -151,7 +151,11 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (screen: ScreenId)
             </span>
           </header>
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <PipeNode name="aurora" role="publisher" />
+            <PipeNode
+              name={publisherLabel(replication.data.publisher?.host)}
+              role="publisher"
+              title={replication.data.publisher?.host}
+            />
             <PipeEdge hop={summarizeStreamHop(replication.data)} />
             <PipeNode
               name={context.data?.liveBranch ?? context.data?.database ?? "sync"}
@@ -353,12 +357,25 @@ function engineHop(
   };
 }
 
-function PipeNode({ name, role }: { name: string; role: string }) {
+/**
+ * A managed endpoint's hostname is long and its first label is the part an
+ * operator recognises, so dotted names show that much and hover gives the
+ * rest; bare IPs keep their port, which is all that distinguishes them.
+ */
+function publisherLabel(host?: string): string {
+  if (!host) return "source";
+  const name = host.split(":")[0]!;
+  return name.includes(".") && !/^\d+\./.test(name) ? name.split(".")[0]! : host;
+}
+
+function PipeNode({ name, role, title }: { name: string; role: string; title?: string }) {
   return (
     <div className="flex shrink-0 items-center gap-2.5 rounded-md border border-line bg-canvas px-3.5 py-2.5">
       <SnapshotIcon className="size-4 text-faint" />
       <div className="min-w-0">
-        <div className="truncate font-mono text-[12.5px] text-ink">{name}</div>
+        <div className="truncate font-mono text-[12.5px] text-ink" title={title}>
+          {name}
+        </div>
         <div className="text-[10.5px] text-faint">{role}</div>
       </div>
     </div>
