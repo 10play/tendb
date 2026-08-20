@@ -40,6 +40,8 @@ export interface PublisherSlot {
 export interface PublisherStatus {
   connected: boolean;
   error?: string;
+  /** host[:port] of the publisher, for display. Never the credentials. */
+  host?: string;
   currentLsn?: string;
   slots?: PublisherSlot[];
   peers?: PublisherPeer[];
@@ -195,6 +197,21 @@ export function normalizeSubscriber(subRows: any[]): SubscriberStatus {
  * README and the hosted-console init both do this). A missing CA fails closed
  * with a clear error in the status payload rather than connecting unverified.
  */
+/**
+ * host[:port] of a Postgres URL, for labelling a connection in the UI. The URL
+ * itself carries the password and never leaves the server, so this deliberately
+ * returns nothing else.
+ */
+export function urlHost(url: string): string | undefined {
+  try {
+    const { hostname, port } = new URL(url);
+    if (!hostname) return undefined;
+    return port ? `${hostname}:${port}` : hostname;
+  } catch {
+    return undefined;
+  }
+}
+
 function poolFor(url: string): pg.Pool {
   return new pg.Pool({
     connectionString: url,
@@ -226,11 +243,13 @@ async function queryPublisher(url: string, includeSchema: boolean): Promise<Publ
       includeSchema ? pool.query(INDEX_FINGERPRINT_SQL) : Promise.resolve(null),
     ]);
     const status = normalizePublisher(lsn.rows[0], slots.rows, peers.rows);
+    status.host = urlHost(url);
     if (schema) status.tables = tableMap(schema.rows);
     if (indexes) status.indexes = tableMap(indexes.rows);
     return status;
   } catch (err) {
-    return { connected: false, error: (err as Error).message };
+    // Identity comes from config, so it is known even when the publisher is down.
+    return { connected: false, error: (err as Error).message, host: urlHost(url) };
   } finally {
     await pool.end().catch(() => {});
   }

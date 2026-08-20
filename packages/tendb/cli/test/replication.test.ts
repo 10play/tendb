@@ -3,7 +3,23 @@ import {
   fetchReplicationStatus,
   normalizePublisher,
   normalizeSubscriber,
+  urlHost,
 } from "../src/console/replication.js";
+
+describe("urlHost", () => {
+  it("keeps host and port, and nothing that could leak a credential", () => {
+    expect(urlHost("postgres://u:secret@db.cluster-x.eu-north-1.rds.amazonaws.com:5432/appdb")).toBe(
+      "db.cluster-x.eu-north-1.rds.amazonaws.com:5432",
+    );
+    expect(urlHost("postgres://postgres:postgres@127.0.0.1:5456/proddb")).toBe("127.0.0.1:5456");
+    expect(urlHost("postgres://host/db")).toBe("host");
+  });
+
+  it("returns undefined rather than throwing on an unparseable URL", () => {
+    expect(urlHost("not a url")).toBeUndefined();
+    expect(urlHost("")).toBeUndefined();
+  });
+});
 
 describe("normalizePublisher", () => {
   it("maps pg_stat rows into the wire shape, coercing bigint strings", () => {

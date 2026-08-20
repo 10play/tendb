@@ -153,6 +153,8 @@ export interface ReplicationPeer {
 export interface ReplicationPublisher {
   connected: boolean;
   error?: string;
+  /** host[:port], for labelling the node. Credentials stay on the server. */
+  host?: string;
   currentLsn?: string;
   slots?: ReplicationSlot[];
   peers?: ReplicationPeer[];
