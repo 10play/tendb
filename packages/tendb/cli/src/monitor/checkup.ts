@@ -276,10 +276,9 @@ export function evaluateCheckup(
       });
     }
 
-    // Every unhealed drift, stalled apply, or disabled subscription ends the
-    // same way: the slot pins WAL on the PUBLISHER's disk. That is the one
-    // failure mode here that can take production down or destroy the stream
-    // outright, so it is reported on its own rather than inferred from lag.
+    // Every unhealed drift and stalled apply ends the same way: the slot pins
+    // WAL on the publisher's disk, which can take production down or destroy
+    // the stream outright — so it is reported directly, not inferred from lag.
     const invalidated = slots.find((s) => s.walStatus === "lost");
     const atRisk = slots.find((s) => s.walStatus === "unreserved");
     if (invalidated) {

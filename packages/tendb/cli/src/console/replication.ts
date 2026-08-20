@@ -30,10 +30,9 @@ export interface PublisherSlot {
    */
   walRetainedBytes: number | null;
   /**
-   * pg_replication_slots.wal_status: reserved → extended → unreserved → lost.
-   * `unreserved` means the slot is past max_slot_wal_keep_size and a
-   * checkpoint may invalidate it; `lost` means it already was, the WAL gap is
-   * permanent, and the sync target can only be recovered by a full reseed.
+   * reserved → extended → unreserved → lost. `unreserved` is a checkpoint away
+   * from invalidation; `lost` means the WAL gap is permanent and the sync
+   * target can only be recovered by a full reseed.
    */
   walStatus: string | null;
 }
