@@ -4,7 +4,7 @@ export const GIT_MODULE_BASE =
 
 /** Keep in lockstep with package.json's version (tagged on the repo) — a
  * floating ref like `main` could drift from the installed CLI's templates. */
-export const DEFAULT_MODULE_REF = "v0.1.2";
+export const DEFAULT_MODULE_REF = "v0.1.3";
 
 export const DEFAULT_SCAFFOLD_DIR = "tendb";
 
