@@ -9,7 +9,15 @@ describe("normalizePublisher", () => {
   it("maps pg_stat rows into the wire shape, coercing bigint strings", () => {
     const status = normalizePublisher(
       { lsn: "0/3000148" },
-      [{ slot_name: "aurora_stream", active: true, lag_bytes: "128", wal_retained_bytes: "4096" }],
+      [
+        {
+          slot_name: "aurora_stream",
+          active: true,
+          wal_status: "reserved",
+          lag_bytes: "128",
+          wal_retained_bytes: "4096",
+        },
+      ],
       [
         {
           application_name: "aurora_stream",
@@ -24,7 +32,15 @@ describe("normalizePublisher", () => {
     expect(status).toEqual({
       connected: true,
       currentLsn: "0/3000148",
-      slots: [{ name: "aurora_stream", active: true, lagBytes: 128, walRetainedBytes: 4096 }],
+      slots: [
+        {
+          name: "aurora_stream",
+          active: true,
+          lagBytes: 128,
+          walRetainedBytes: 4096,
+          walStatus: "reserved",
+        },
+      ],
       peers: [
         {
           applicationName: "aurora_stream",
@@ -41,10 +57,16 @@ describe("normalizePublisher", () => {
   it("keeps a never-confirmed slot's lag and retained WAL as null rather than 0", () => {
     const status = normalizePublisher(
       { lsn: "0/0" },
-      [{ slot_name: "s", active: false, lag_bytes: null, wal_retained_bytes: null }],
+      [{ slot_name: "s", active: false, wal_status: null, lag_bytes: null, wal_retained_bytes: null }],
       [],
     );
-    expect(status.slots?.[0]).toEqual({ name: "s", active: false, lagBytes: null, walRetainedBytes: null });
+    expect(status.slots?.[0]).toEqual({
+      name: "s",
+      active: false,
+      lagBytes: null,
+      walRetainedBytes: null,
+      walStatus: null,
+    });
   });
 });
 
