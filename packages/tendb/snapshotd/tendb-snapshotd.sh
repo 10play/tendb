@@ -70,12 +70,20 @@ align_sequences() { # $1 = subscriber url
 # including migration-ledger inserts — arrive on the stream. Snapshotting
 # mid-drain freezes a branch whose schema is ahead of its own ledger.
 stream_converged() { # 0 = subscriber has applied ~everything the publisher wrote
-  local pub sub subs sub_lsn lag
+  local pub sub subs copying sub_lsn lag
   pub=$(publisher_url); sub=$(subscriber_url)
   [ -n "$pub" ] && [ -n "$sub" ] || return 0 # not a streaming deployment
 
-  subs=$(psql "$sub" -Atc "SELECT count(*) FROM pg_subscription" 2>/dev/null)
-  [ "${subs:-0}" -gt 0 ] 2>/dev/null || return 0 # nothing subscribed, nothing to wait for
+  # Every query below fails closed: an unreachable subscriber is unknown, not caught up.
+  subs=$(psql "$sub" -Atc "SELECT count(*) FROM pg_subscription" 2>/dev/null) || return 1
+  [ -n "$subs" ] || return 1
+  [ "$subs" -gt 0 ] 2>/dev/null || return 0 # nothing subscribed, nothing to wait for
+
+  # Tables added by REFRESH PUBLICATION copy in tablesync workers whose progress
+  # the apply worker's LSN says nothing about — an empty table mid-COPY is the
+  # same torn state as stream lag. 'r' ready, 's' synchronized; the rest are working.
+  copying=$(psql "$sub" -Atc "SELECT count(*) FROM pg_subscription_rel WHERE srsubstate NOT IN ('r', 's')" 2>/dev/null) || return 1
+  [ "${copying:-1}" -eq 0 ] 2>/dev/null || return 1
 
   # A configured subscription always has a stats row, so a NULL latest_end_lsn
   # is ambiguous; pid IS NULL is the honest signal that no apply worker is
@@ -95,22 +103,25 @@ take_snapshot() { # $1 = "scheduled" to wait for convergence; requests never wai
   local mode="${1:-}" sub converged=yes waiting_since now
   sub=$(subscriber_url)
 
-  if ! stream_converged; then
+  if stream_converged; then
+    rm -f "$STATE_DIR/converge-waiting-since"
+  else
     converged=no
-    now=$(date -u +%s)
-    waiting_since=$(cat "$STATE_DIR/converge-waiting-since" 2>/dev/null || true)
-    if [ -z "$waiting_since" ]; then
-      waiting_since=$now
-      echo "$now" > "$STATE_DIR/converge-waiting-since"
-      log "stream behind — holding snapshots until it catches up (max ${CONVERGE_MAX_WAIT_SECONDS}s)"
-    fi
-    # Requests never wait: the CLI expects a fresh id within ~10 s.
-    if [ "$mode" = "scheduled" ] && [ $((now - waiting_since)) -lt "$CONVERGE_MAX_WAIT_SECONDS" ]; then
-      return 0
+    # Only the scheduled path owns this clock; requests never wait (the CLI
+    # expects a fresh id within ~10 s) and so must not reset it either.
+    if [ "$mode" = "scheduled" ]; then
+      now=$(date -u +%s)
+      waiting_since=$(cat "$STATE_DIR/converge-waiting-since" 2>/dev/null || true)
+      if [ -z "$waiting_since" ]; then
+        waiting_since=$now
+        echo "$now" > "$STATE_DIR/converge-waiting-since"
+        log "stream behind — holding snapshots until it catches up (max ${CONVERGE_MAX_WAIT_SECONDS}s)"
+      fi
+      [ $((now - waiting_since)) -lt "$CONVERGE_MAX_WAIT_SECONDS" ] && return 0
+      rm -f "$STATE_DIR/converge-waiting-since" # expired: snapshot now, fresh clock next stall
     fi
     log "warn: snapshotting an unconverged stream — branches from it may carry healed schema without the rows that explain it"
   fi
-  rm -f "$STATE_DIR/converge-waiting-since"
 
   if [ -n "$sub" ]; then
     align_sequences "$sub"
@@ -376,6 +387,7 @@ log "starting (prefix=${TENDB_PARAM_PREFIX:-/tendb}, pool=$POOL, poll=${POLL_SEC
 # Seed nonce state so a request from a previous life isn't replayed on boot.
 param snapshots/request > "$STATE_DIR/last-request" 2>/dev/null || true
 param schema/sync-request > "$STATE_DIR/last-sync-request" 2>/dev/null || true
+rm -f "$STATE_DIR/converge-waiting-since" # a deadline from a previous life is meaningless
 
 last_autosync=0
 while true; do

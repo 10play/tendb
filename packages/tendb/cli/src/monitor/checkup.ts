@@ -27,6 +27,7 @@ export type FindingCode =
   | "replication-lag"
   | "replication-stale"
   | "wal-retained"
+  | "slot-at-risk"
   | "slot-invalidated"
   | "schema-drift";
 
@@ -289,8 +290,11 @@ export function evaluateCheckup(
         value: "lost",
       });
     } else if (atRisk) {
+      // Its own code, not a lesser severity of slot-invalidated: alert
+      // transitions key on the code, so sharing one would swallow the
+      // at-risk → lost escalation, and the two need different responses.
       findings.push({
-        code: "slot-invalidated",
+        code: "slot-at-risk",
         severity: "critical",
         message: `replication slot ${atRisk.name} is past max_slot_wal_keep_size (wal_status=unreserved) — the next checkpoint can invalidate it and force a full reseed`,
         value: "unreserved",

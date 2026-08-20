@@ -118,8 +118,9 @@ describe("evaluateCheckup", () => {
     expect(slot({ walRetainedBytes: DEFAULT_THRESHOLDS.walRetainedCriticalBytes + 1 })).toMatchObject([
       { code: "wal-retained", severity: "critical" },
     ]);
+    // Separate codes, so diffFindings still fires on at-risk → lost.
     expect(slot({ walStatus: "unreserved" })).toMatchObject([
-      { code: "slot-invalidated", severity: "critical", value: "unreserved" },
+      { code: "slot-at-risk", severity: "critical", value: "unreserved" },
     ]);
     expect(slot({ walStatus: "lost" })).toMatchObject([
       { code: "slot-invalidated", severity: "critical", value: "lost" },
@@ -223,6 +224,17 @@ describe("diffFindings", () => {
     expect(d.alerts).toHaveLength(1);
     d = diffFindings(seen, []); // cleared → recover
     expect(d.recovers).toEqual(["disk-usage"]);
+  });
+
+  it("still alerts when a slot goes from at-risk to invalidated", async () => {
+    const { diffFindings } = await import("../src/monitor/checkup.js");
+    const seen = new Map();
+    // Both are critical, so only distinct codes keep this transition audible.
+    const atRisk = { code: "slot-at-risk", severity: "critical", message: "m" } as const;
+    const lost = { code: "slot-invalidated", severity: "critical", message: "m" } as const;
+
+    expect(diffFindings(seen, [atRisk]).alerts).toHaveLength(1);
+    expect(diffFindings(seen, [lost]).alerts).toEqual([lost]);
   });
 });
 
