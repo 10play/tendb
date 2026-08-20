@@ -210,7 +210,8 @@ list_indexdefs() { # $1=url
 # Same-name-different-type is deliberately untouched: a rename is
 # indistinguishable from drop+add, and guessing wrong loses sync-target data.
 sync_columns() { # $1=mode $2=pub-url $3=sub-url — appends to SYNC_ERROR
-  local mode="$1" pub="$2" sub="$3" pub_defs sub_defs add_keys drop_keys sub_now held
+  local mode="$1" pub="$2" sub="$3" pub_defs sub_defs add_keys drop_keys
+  local sub_now held marks unresolved sep=$'\x01'
   pub_defs=$(list_coldefs "$pub") || { SYNC_ERROR="${SYNC_ERROR:-cannot reach the publisher from snapshotd}"; return 1; }
   sub_defs=$(list_coldefs "$sub") || { SYNC_ERROR="${SYNC_ERROR:-cannot reach the sync target from snapshotd}"; return 1; }
   add_keys=$(comm -23 <(echo "$pub_defs" | cut -d $'\x01' -f 1,2) <(echo "$sub_defs" | cut -d $'\x01' -f 1,2))
@@ -233,6 +234,7 @@ sync_columns() { # $1=mode $2=pub-url $3=sub-url — appends to SYNC_ERROR
         nullable="${frag% NOT NULL}"
         if [ "$nullable" != "$frag" ] && psql "$sub" -Atc "ALTER TABLE $t ADD COLUMN $nullable" >/dev/null; then
           log "warn: added $t.$col as NULLABLE (NOT NULL rejected on a populated table — if this was a rename, the values are still in the column dropped upstream)"
+          printf '%s\x01%s\n' "$t" "$col" >> "$STATE_DIR/nullable-fallbacks"
         else
           log "warn: could not add column $t.$col"; ok=0
         fi
@@ -242,17 +244,25 @@ sync_columns() { # $1=mode $2=pub-url $3=sub-url — appends to SYNC_ERROR
   fi
 
   if [ "$mode" = "full" ] && [ -n "$drop_keys" ]; then
-    # Tables carrying an unresolved fallback: a column that is NOT NULL
-    # upstream but nullable here. Their orphan columns may hold the renamed
-    # values, so they survive the drop pass until a human resolves it. Derived
-    # from live state (re-read, since the add pass above may have just created
-    # one) rather than remembered, so the guard cannot lapse on a later run.
+    # An orphan column on a table that took a nullable fallback may hold the
+    # values an upstream rename left behind, so it survives the drop pass.
+    # Recorded when the fallback happens — a live nullability mismatch alone
+    # proves nothing, since a plain upstream SET NOT NULL drifts identically
+    # and would pin the table forever — then pruned here once the column is
+    # resolved or gone, so the guard can neither lapse nor become permanent.
     sub_now=$(list_coldefs "$sub") || sub_now="$sub_defs"
-    held=$(awk -F $'\x01' '
-      NR == FNR { pub[$1 "\x01" $2] = $3; next }
-      { k = $1 "\x01" $2
-        if (k in pub && pub[k] ~ / NOT NULL$/ && $3 !~ / NOT NULL$/) print $1 }' \
-      <(echo "$pub_defs") <(echo "$sub_now") | sort -u)
+    marks="$STATE_DIR/nullable-fallbacks"
+    unresolved=$(
+      { echo "$pub_defs" | sed "s/^/P$sep/"
+        echo "$sub_now" | sed "s/^/S$sep/"
+        sort -u "$marks" 2>/dev/null | sed "s/^/M$sep/"
+      } | awk -F $'\x01' '
+          $1 == "P" { pub[$2 "\x01" $3] = $4; next }
+          $1 == "S" { sb[$2 "\x01" $3] = $4; next }
+          { k = $2 "\x01" $3
+            if (k in pub && k in sb && pub[k] ~ / NOT NULL$/ && sb[k] !~ / NOT NULL$/) print $2 "\x01" $3 }')
+    if [ -n "$unresolved" ]; then printf '%s\n' "$unresolved" > "$marks"; else : > "$marks"; fi
+    held=$(printf '%s' "$unresolved" | cut -d "$sep" -f 1 | sort -u)
 
     echo "$drop_keys" | {
       ok=1
